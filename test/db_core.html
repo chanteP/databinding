@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html manifest="/manifest/base.appcache">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="zh-CN" />
+        
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+        <meta content="yes" name="apple-mobile-web-app-capable" />
+        <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+        <meta content="telephone=no" name="format-detection" />
+        
+        <title>db core test</title>
+        
+        <!--        <link rel="shortcut icon" href="/favicon.ico" /> -->
+        <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
+        <script src="../build/databind.js"></script>
+    </head>
+    <body>
+        <div id="wrapper">
+            mode ? accessor : vmObject
+            <select id="slt">
+                <option value="0">0</option>
+                <option value="1">1</option>
+            </select>
+        </div>
+        <script>
+        var mode = /mode=(\d)/.exec(location.search);
+        mode = mode ? +mode[1] : 0;
+        slt.value = mode;
+        slt.onchange = function(){
+            location.href = '?mode=' + this.value;
+        }
+        </script>
+        <pre>
+        <script type="text/javascript" style="display:block;">
+        // var vm = DataBind.accessor();
+        mode = mode;
+        /* ######################################################################
+        vm : {
+            a : {
+                b : {
+                    c : {
+                        data : this.d + this.e
+                    },
+                    d : 222,
+                    e : 13
+                }
+            },
+            s : 1 [3000, +]
+        }
+        */
+        DataBind.config({mode:mode});
+        var vm = DataBind.root;
+        var demo = new DataBind('a.b.c', {
+            data : {
+                $value:123,
+                $get : function(vm){
+                   return this.d + this.e + vm.s;
+                },
+                $change : function(v, ov, detail){
+                    console.log('a.b.c.data', v, ov, detail)
+                }
+            }, 
+            d : 222,
+            e : 13
+        }, {
+            propagation : true,
+            mode : mode
+        });
+        var pro = new DataBind('', {
+            s : {
+                $value : 231,
+                $set : function(v){
+                    return Math.min(v, 250);
+                },
+                $dirty : true
+            }
+        });
+        var num = vm.s;
+        setInterval(function(){
+            pro.set('s', num++)
+        }, 3000);
+        </script>
+        </pre>
+    </body>
+</html>

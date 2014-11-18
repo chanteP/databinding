@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html manifest="/manifest/base.appcache">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="zh-CN" />
+        
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+        <meta content="yes" name="apple-mobile-web-app-capable" />
+        <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+        <meta content="telephone=no" name="format-detection" />
+        
+        <title>expression</title>
+        
+        <!-- <link rel="shortcut icon" href="/favicon.ico" /> -->
+        <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
+        <script src="../dev/lib/core/core.js"></script>
+        <script src="../dev/lib/core/kit.js"></script>
+        <script src="../dev/lib/core/dataBind.core.js"></script>
+        <script src="../dev/lib/core/dataBind.expression.js"></script>
+    </head>
+    <body>
+        {{<input id="expr" value="a.b.c.data > 1">}}
+        <div><p id="rs"></p></div>
+        <script>
+        var demo = new DataBind('a.b.c', {
+            data : {
+                $value:123,
+                $set:function(value, o){
+                    return value;
+                },
+                $get : function(vm){
+                   return this.d + this.e + vm.s;
+                }
+            }, 
+            d : 222,
+            e : 13
+        }, {
+            propagation : true,
+            mode : 1
+        });
+        var v = new DataBind('', {
+            s : {
+                $value : 1,
+                $set : function(v, o){
+                    return Math.min(v, 3000);
+                }
+            }
+        });
+        </script>
+        <pre>
+        <script type="text/javascript" style="display:block;">
+
+        var exp = DataBind.expression;
+        var vm = DataBind.root;
+
+        expr.onkeyup = function(){
+            rs.innerHTML = exp(this.value, vm, vm);
+        }
+        expr.onkeyup();
+        // exp('abc + eee', 'a.b.c', vm);
+
+        </script>
+        </pre>
+    </body>
+</html>

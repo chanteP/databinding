@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html manifest="/manifest/base.appcache">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="zh-CN" />
+        
+        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+        <meta content="yes" name="apple-mobile-web-app-capable" />
+        <meta content="black" name="apple-mobile-web-app-status-bar-style" />
+        <meta content="telephone=no" name="format-detection" />
+        
+        <title>vm测试，name:{{form.name}}</title>
+        
+        <!--        <link rel="shortcut icon" href="/favicon.ico" /> -->
+        <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
+        <script src="../dev/lib/core/zepto.min.js"></script>
+        <script src="../dev/lib/core/jquery.hammer.min.js"></script>
+        <script src="../dev/lib/core/core.js"></script>
+        <script src="../dev/lib/core/kit.js"></script>
+        <script src="../dev/lib/core/dataBind.core.js"></script>
+        <script src="../dev/lib/core/dataBind.expression.js"></script>
+        <script src="../dev/lib/core/dataBind.domExtend.js"></script>
+    </head>
+    <body>
+        <div id="wrapper">
+        <form vm-bind="form">
+            <div>
+                <label>姓名</label><input name="name" vm-model="name" value="{{name}}">
+            </div>
+            <div>
+                <label>性别</label>
+                <label><input type="radio" name="sex" vm-model="sex" value="male" checked="{{sex}}">男</label>
+                <label><input type="radio" name="sex" vm-model="sex" value="female" checked="{{sex}}">女</label>
+            </div>
+            <div>
+                <label>职业</label>
+                <label><input type="checkbox" name="job" vm-model="job" value="m" checked="{{job}}">魔法</label>
+                <label><input type="checkbox" name="job" vm-model="job" value="s" checked="{{job}}">剑士</label>
+            </div>
+            <div>
+                介绍<textarea name="intro" vm-model="intro" value="{{intro}}"></textarea>
+            </div>
+        </form>
+        </div>
+        <hr >
+        <div id="info" vm-bind="form">
+            <p>{{name['length']}}</p>
+            <p>姓名是{{name == '' ? '无' : name}}, {{sex == 'male' ? '基佬' : '妹纸'}}, 职业 {{job}}</p>
+            <p>{{intro}}</p><span style="display:{{intro['length'] > 10 ? 'block' : 'none'}};color:#c00;">超过10个字了卧槽</span>
+        </div>
+        <div>{{form.table['length']}}</div>
+        <button id="tableP">+</button>
+        <button id="tableM">-</button>
+        <table vm-bind="form">
+            <tr vm-list="tr in table">
+                <td>{{tr.name}}</td>
+                <td>{{tr.id}}</td>
+            </tr>
+        </table>
+        <hr >
+        <div id="formData"></div>
+        <script type="text/javascript">
+            DataBind.config({mode:0})
+            var vm = DataBind.root;
+            var exp = DataBind.expression;
+            var t = [];
+            new DataBind('form', {
+                name : 'dsfgdfg',
+                sex : 'female',
+                job : 's',
+                intro : '123123123cfd',
+                table : t
+            });
+
+            tableP.onclick = function(){
+                t.push({
+                    id : Date.now(),
+                    name : String.fromCharCode((Math.random()*43244)|0)
+                })
+            }
+            tableM.onclick = function(){
+                t.pop();
+            }
+
+            DataBind.observe('form', function(){
+                formData.innerHTML = JSON.stringify(vm.form);
+            });
+        </script>
+    </body>
+</html>

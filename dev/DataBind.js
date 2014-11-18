@@ -15,10 +15,10 @@
         DataBind.observe('')
     propagation : 
 */
-var $ = require('kit');
-var config = require('config');
-var Accessor = require('Accessor');
-var listener = require('Observer');
+var $ = require('./kit');
+var config = require('./config');
+var Accessor = require('./Accessor');
+var listener = require('./Observer');
 
 var root = {};
 //################################################################################################################

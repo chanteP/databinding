@@ -1,5 +1,3 @@
-var listener = require('Observer');
-
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
         return nameNS in Accessor.storage ? Accessor.storage[nameNS] : false;
@@ -73,3 +71,5 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
     }
 }
 module.exports = Accessor;
+var config = require('./config');
+var listener = require('./Observer');

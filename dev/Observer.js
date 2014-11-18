@@ -1,4 +1,3 @@
-var Accessor = require('Accessor');
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
@@ -65,3 +64,6 @@ var listener = {
     }
 }
 module.exports = listener;
+var $ = require('./kit');
+var merge = $.merge;
+var Accessor = require('./Accessor');
