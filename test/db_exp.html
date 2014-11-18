@@ -16,9 +16,14 @@
         <script src="../build/databind.js"></script>
     </head>
     <body>
-        {{<input id="expr" value="a.b.c.data > 1">}}
+        {{<input id="expr" value=".length">}}
+        <div><p>bind<input id="bindAcc" value="a.b.c.arr" /></p></div>
         <div><p id="rs"></p></div>
-        <script>
+        <pre>
+        <script style="display:block;">
+        DataBind.config({
+            mode : 1
+        })
         var demo = new DataBind('a.b.c', {
             data : {
                 $value:123,
@@ -30,33 +35,22 @@
                 }
             }, 
             d : 222,
-            e : 13
-        }, {
-            propagation : true,
-            mode : 1
-        });
-        var v = new DataBind('', {
-            s : {
-                $value : 1,
-                $set : function(v, o){
-                    return Math.min(v, 3000);
-                }
-            }
+            e : 13,
+            arr : [1,2,3]
         });
         </script>
-        <pre>
-        <script type="text/javascript" style="display:block;">
+        </pre>
+        <script type="text/javascript" >
 
         var exp = DataBind.expression;
         var vm = DataBind.root;
 
         expr.onkeyup = function(){
-            rs.innerHTML = exp(this.value, vm, vm);
+            rs.innerHTML = exp(this.value, DataBind.get(bindAcc.value), vm);
         }
         expr.onkeyup();
         // exp('abc + eee', 'a.b.c', vm);
 
         </script>
-        </pre>
     </body>
 </html>

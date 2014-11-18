@@ -281,52 +281,66 @@ if('defineProperty' in Object){
 module.exports = DataBind;
 },{"./Accessor":1,"./Observer":4,"./config":5,"./kit":7}],3:[function(require,module,exports){
 /*
-    <tag>{{a}}</tag> // text vm.a
-    <tag attr={{a}}></tag> // attribute vm.a
-
+    expression('a.b.c', {a:xxx}, vm)
+    整个文件跟{{}}没关系啦
 */
 var DataBind = require('./DataBind');
 var $ = require('./kit');
 
-
+var scopeHolder = '$data', selfHolder = '$self';
 //################################################################################################################
 var log = $.log;
 var get = DataBind.get;
+var emptyFunc = function(){return '';};
 //################################################################################################################
-var getValue = function(expression, context, vm){
-    return parser(expression)(typeof context === 'string' ? DataBind.get(context) : context, vm);
+var getValue = function(expression, scope, vm){
+    return parser(expression)(scope, vm, scope);
 }
 //################################################################################################################
 var filter = {
 };
 //################################################################################################################
-var func = {
-    'funcPropCheck' : function(propText){
-        return '(typeof '+propText+' === "undefined" ? "" : '+propText+')';
-    }
+var funcPropCheck = function(propText){
+    return '(typeof '+propText+' === "undefined" ? "" : '+propText+')';
 }
 //################################################################################################################
 var parserCache = {};
+/*
+    Function 解析表达式并构造&缓存函数体
+*/
 var parser = function(expression){
-    if(typeof expression !== 'string'){return;}
+    if(typeof expression !== 'string'){
+        log('DataBind.expression', 'expression \"' + expression + '\" is not function');
+        return emptyFunc;
+    }
     if(parserCache[expression]){return parserCache[expression];}
     var funcBody, funcIns;
     funcBody = parseDeps(expression, null, function(match){
-        return func.funcPropCheck(match.slice(0, 2) === 'vm.' ? match : 'data.' + match);
+        var prop;
+        if(match.slice(0, 1) === '.')
+            prop = selfHolder + match;
+        else if(match.slice(0, 3) === 'vm.')
+            prop = match;
+        else
+            prop = scopeHolder + '.' + match;
+        return funcPropCheck(prop);
     });
     // /(^( )?(if|for|else|switch|case|break|{|}))(.*)?/g;
     try{
-        funcIns = new Function('data', 'vm', 'return ' + funcBody);
+        funcIns = new Function(scopeHolder, 'vm', selfHolder, 'return ' + funcBody);
         return parserCache[expression] = funcIns;
     }
     catch(e){
-        log('[databind.expression]', 'expression error!' + expression, e);
-        return function(){return '';};
+        log('DataBind.expression', 'expression error!' + expression, e);
+        return emptyFunc;
     }
 }
+/*
+    
+*/
 var parseDeps = function(expression, matchList, matchCallback){
     if(!matchList && !matchCallback){return;}
-    var reg = /\b(?!\'|\")([\w|\.]+)(?!\'|\")\b/g, expressionBody;
+    var reg = /(?=\b|\.)(?!\'|\")([\w|\.]+)(?!\'|\")\b/g, expressionBody;
     expressionBody = expression.replace(reg, function(text, match){
         if(isNaN(match)){
             var dep = matchCallback ? matchCallback(match) : match;
@@ -339,19 +353,24 @@ var parseDeps = function(expression, matchList, matchCallback){
 }
 
 //################################################################################################################
-DataBind.expression = function(expressionText, context, vm){
-    context = context || vm;
+var expression = function(expressionText, scope, vm){
     if(typeof expressionText !== 'string' || !expressionText.trim() || expressionText[0] === '#'){return '';}
-    //TODO char
-    var filterData = expressionText.split(/\|{1,1}/), filterArgs = /^\s*([\w]+)\(([\w\s\,]+)\)/.exec(filterData[1]);
-    var rs = getValue(filterData[0], context, vm);
-    if(filterArgs && filterArgs[1]){
-        return filter[filterArgs[1]](rs, filterArgs[2].split(','), context, vm);
+    //{{expression | filter}}
+    var part = expressionText.split(/\|{1,1}/),
+        exp = part.shift(),
+        filterArgs = /^\s*([\w]+)\(([\w\s\,]+)\)/.exec(part.join(''));
+
+    var rs = getValue(exp, scope, vm);
+    if(filterArgs && (filterArgs[1] in filter)){
+        return filter[filterArgs[1]].call(null, [rs].concat(filterArgs[2].split(',')));
     }
     return rs;
 }
+DataBind.expression = expression;
 DataBind.expression.parseDeps = parseDeps;
 DataBind.expression.parserCache = parserCache;
+
+module.exports = expression;
 
 
 },{"./DataBind":2,"./kit":7}],4:[function(require,module,exports){
