@@ -1,3 +1,6 @@
+var DataBind = require('./DataBind');
+var expression = require('./Expression');
+
 ;(function(window, DataBind, $){
     var expPreg = /{{([^}]+)}}/m, listPreg = /([\w\.]+)\sin\s([\w\.]+)/;
     var prefix = 'vm-';
