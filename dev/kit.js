@@ -64,9 +64,9 @@ $.contains  = function(root, el){
 }
 $.create = function(str){
     if(str[0] === '<'){
-        var d = document.createElement('div');
-        d.innerHTML = str;
-        return d.firstChild;
+        var template = document.createElement('template');
+        template.innerHTML = str;
+        return template.content.firstChild;
     }
     else{
         return document.createElement(str);

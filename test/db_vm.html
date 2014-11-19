@@ -48,9 +48,10 @@
         <button id="tableP">+</button>
         <button id="tableM">-</button>
         <table vm-bind="form">
-            <tr vm-list="tr in table">
-                <td>{{tr.name}}</td>
-                <td>{{tr.id}}</td>
+            <tr vm-list="form.table">
+                <td></td>
+                <td>{{name}}</td>
+                <td>{{id}}</td>
             </tr>
         </table>
         <hr >
@@ -75,13 +76,13 @@
             new DataBind('form', formData);
 
             tableP.onclick = function(){
-                t.push({
+                formData.table.push({
                     id : Date.now(),
                     name : String.fromCharCode((Math.random()*43244)|0)
                 })
             }
             tableM.onclick = function(){
-                t.pop();
+                formData.table.pop();
             }
 
         </script>

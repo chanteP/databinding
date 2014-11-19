@@ -308,6 +308,8 @@ var evt = $.evt,
     find = $.find,
     findAll = $.findAll,
     contains = $.contains,
+    create = $.create,
+    remove = $.remove,
     unique = $.unique;
 //################################################################################################################
 var main = {
@@ -379,6 +381,7 @@ var check = {
     'list' : function(node){
         var listProp = node.getAttribute(marker.list);
         if(listProp !== null){
+            node.removeAttribute(marker.list);
             bind.list(node, listProp);
             return true;
         }
@@ -463,18 +466,24 @@ var bind = {
 		var template = node.outerHTML;
         var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
-        node.parentNode.replaceChild(node, listMark);
+        node.parentNode.replaceChild(listMark, node);
         observe(prop, function(){
             if(!listMark.parentNode){return;}
             var list = get(prop);
             if(!(list instanceof Array)){return;}
-            list.forEach(function(el){
-
+            var content = listMark.parentNode;
+            [].forEach.call(listNodeCollection, function(element){
+                remove(element);
+            });
+            list.forEach(function(dataElement, index){
+                var element = create(template),
+                    scope = Object.create(dataElement, {index:{value:index}});
+                element.setAttribute(marker.bind, prop + '['+index+']');
+                content.insertBefore(element, listMark);
+                listNodeCollection.push(element);
+                main.scan(element);
             });
         });
-		// for(var data in list){
-
-		// }
 	},
     //node attribute
     'attr' : function(node, attrText, attrName){
@@ -786,9 +795,9 @@ $.contains  = function(root, el){
 }
 $.create = function(str){
     if(str[0] === '<'){
-        var d = document.createElement('div');
-        d.innerHTML = str;
-        return d.firstChild;
+        var template = document.createElement('template');
+        template.innerHTML = str;
+        return template.content.firstChild;
     }
     else{
         return document.createElement(str);
