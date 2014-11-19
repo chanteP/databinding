@@ -15,6 +15,8 @@ var marker = {
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
 var vm = DataBind.root;
+var set = DataBind.set;
+var get = DataBind.get;
 //################################################################################################################
 var evt = $.evt,
     find = $.find,
@@ -69,7 +71,7 @@ var main = {
         else if(node.nodeType === 3){
             //非空而且包含{{}}
             if(!node.textContent.trim().length || !expPreg.test(node.textContent)){return;}
-            bind.observe('text', node, node.textContent);
+            bind.text(node, node.textContent);
         }
         //其他节点管来干嘛
     }
@@ -81,7 +83,7 @@ var check = {
     'attr' : function(node, html){
         [].forEach.call(node.attributes, function(attributeNode){
         	if(expPreg.test(attributeNode.value)){
-            	bind.observe('attr', node, attributeNode.value, attributeNode.name);
+            	bind.attr(node, attributeNode.value, attributeNode.name);
         	}
         });
     },
@@ -100,16 +102,17 @@ var parse = {
     /*
         Array 解析表达式中的依赖
     */
-    'deps' : function(text, context, expressions){
+    'deps' : function(text, context){
         var deps = [];
-        expressions = expressions || main.parse.exps(text);
+        expressions = parse.exps(text);
         expressions.forEach(function(expression){
-            main.expression.parseDeps(expression, deps, function(dep){
-                if(dep.slice(0, 2) === 'vm.'){return dep.slice(2, -1)}
-                else{return context ? context + '.' + dep : dep;}
+            expression.parseDeps(expression, deps, function(dep){
+                if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
+                if(dep.slice(0, 1) === '.'){return context;}
+                return context ? context + '.' + dep : dep;
             });
         });
-        return func.unique(deps);
+        return unique(deps);
     },
     /*
         Array 分解出表达式部分
@@ -126,25 +129,25 @@ var parse = {
     */
     'text' : function(text, context){
         return text.replace(/{{([^}]*)}}/mg, function(t, match){
-            return DataBind.expression(match, context, vm);
+            return expression(match, context, vm);
         });
     },
     //TODO cache context in node
     //TODO cascade
     /*
-        String 获取节点绑定的context
+        String 获取节点绑定的context scope
     */
     'context' : function(node){
         if(node.getAttribute && node.getAttribute(marker.bind)){
             return node.getAttribute(marker.bind);
         }
-        return node.parentNode ? main.parse.context(node.parentNode) : '';
+        return node.parentNode ? parse.context(node.parentNode) : '';
     }
 };
 var bind = {
 	'model' : function(e){
 		var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
-		var model = this.getAttribute(marker.model), context = main.parse.context(this);
+		var model = this.getAttribute(marker.model), context = parse.context(this);
 		var value = '', form = this.form || document.body, rs;
 		if(name && tagName === 'input'){
 			switch (type){
@@ -168,57 +171,57 @@ var bind = {
 		else{
 			value = this.value;
 		}
-		DataBind.set((context ? context + '.' : '') + model, value);
+		set((context ? context + '.' : '') + model, value);
 	},
 	'list' : function(node){
-		// var html = node.outerHTML;
+		var template = node.outerHTML;
 		// for(var data in list){
 
 		// }
 	},
-    //model to view
-	'observe' : function(type, node, text, extData){
-        var context = main.parse.context(node), deps = main.parse.deps(text, context), func;
-		func = main.bind[type](node, text, context, extData);
-        func.node = node;
-        deps.forEach(function(prop){
-            DataBind.observe(prop, func, checkType);
-        });
-        checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));
-	},
-	'checked' : function(node, text, context, extData){
-		var checkValue = extData.checkValue, split = extData.split;
-		return function(value){
-			if(split){
-				var rs = value.split(',');
-			}
-		}
-	},
-    'attr' : function(node, text, context, attr){
+    //node attribute
+    'attr' : function(node, attrText, attrName){
+        var context = parse.context(node), deps = parse.deps(textContent, context), func;
     	switch (attr){
     		case 'checked' : 
         		var checkValue = node.value;
-        		return node.type === 'checkbox' ? 
+        		func = node.type === 'checkbox' ? 
         		function(value){
+            //TODO if(!node.parentNode){}
         			node.checked = (value || '').split(',').indexOf(checkValue) >= 0;
         		} : 
         		function(value){
+            //TODO if(!node.parentNode){}
         			node.checked = value === checkValue;
         		};
         	case 'value' : 
-                return function(){
-                    node.value = main.parse.text(text, context);
+                func = function(){
+            //TODO if(!node.parentNode){}
+                    node.value = parse.text(text, context);
                 }
         	default : 
-                return function(){
-                    node.setAttribute(attr, main.parse.text(text, context));
+                func = function(){
+            //TODO if(!node.parentNode){}
+                    node.setAttribute(attr, parse.text(text, context));
                 }
     	}
+        deps.forEach(function(prop){
+            listener.add(prop, func, checkType);
+            checkProp.push(prop);
+        });
     },
-    'text' : function(node, text, context){
-        return function(){
-            node.textContent = main.parse.text(text, context);
+    //textNode
+    'text' : function(node, textContent){
+        var context = parse.context(node), deps = parse.deps(textContent, context), func;
+        func = function(){
+            //TODO if(!node.parentNode){}
+            node.textContent = parse.text(text, context);
         }
+        deps.forEach(function(prop){
+            listener.add(prop, func, checkType);
+            checkProp.push(prop);
+        });
+        // checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));
     }
 }
 //################################################################################################################
