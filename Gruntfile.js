@@ -7,8 +7,19 @@ module.exports = function(grunt) {
           'build/databind.js': ['dev/init.js'],
         }
       }
+    },
+    watch: {
+      scripts: {
+        files: ['dev/**/*.js'],
+        tasks: ['browserify'],
+        options: {
+          spawn: false,
+        },
+      },
     }
   })
   grunt.loadNpmTasks('grunt-browserify');
-  grunt.registerTask('default', ['browserify']);
+  grunt.loadNpmTasks('grunt-contrib-watch');
+
+  grunt.registerTask('default', ['browserify', 'watch']);
 }

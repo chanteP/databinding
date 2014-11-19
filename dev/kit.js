@@ -1,4 +1,5 @@
 var $ = {};
+// require('./jquery.hammer.min');
 
 $.objMerger = function(type, args){
     var hold = false, rsObj, curObj;
@@ -89,8 +90,8 @@ $.remove    = function(node){
 }
 $.evt = function(element, data){
     var obj = typeof data === 'undefined' ?
-        $.ext(element).hammer(data):
-        $.ext(element);
+        Zepto(element):
+        Zepto(element).hammer(data);
     var evt = function(type, args){
         this[type].apply(this, args);
     }

@@ -5,7 +5,7 @@ var config = require('./config');
 
 var $ = require('./kit');
 
-var expPreg = /{{([^}]+)}}/m, listPreg = /([\w\.]+)\sin\s([\w\.]+)/;
+var expPreg = /{{([^}]+)}}/m;
 var prefix = 'vm-';
 var marker = {
 	'model' : prefix + 'model',
@@ -14,9 +14,13 @@ var marker = {
 }
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
-var vm = DataBind.root;
-var set = DataBind.set;
-var get = DataBind.get;
+
+var vm = DataBind.root,
+    set = DataBind.set,
+    get = DataBind.get;
+
+var observe = listener.add,
+    fire = listener.fire;
 //################################################################################################################
 var evt = $.evt,
     find = $.find,
@@ -30,7 +34,7 @@ var main = {
     */
     'bindContent' : function(node){
 		var evtBody = node || document.body;
-		func.evt(evtBody)
+		evt(evtBody)
 			//radio checkbox etc...
 			.on('change', [
 					'input['+marker.model+']',
@@ -51,10 +55,10 @@ var main = {
 		checkProp = [];
 		main.parseNode(node || document.body);
 		while(checkProp.length){
-			listener.fire(checkProp.pop(), checkType);
+			fire(checkProp.pop(), checkType);
 		}
 	},
-    'parseNode' : function(node){
+    'parseNode' : function(node, scope){
         //elementNode
         if(node.nodeType === 1){
         	var html = node.outerHTML;
@@ -92,8 +96,8 @@ var check = {
     */
     'list' : function(node){
         var listProp = node.getAttribute(marker.list);
-        if(listProp && listPreg.test(listProp)){
-            bind.list(node);
+        if(listProp !== null){
+            bind.list(node, listProp);
             return true;
         }
     }
@@ -105,8 +109,8 @@ var parse = {
     'deps' : function(text, context){
         var deps = [];
         expressions = parse.exps(text);
-        expressions.forEach(function(expression){
-            expression.parseDeps(expression, deps, function(dep){
+        expressions.forEach(function(exp){
+            expression.parseDeps(exp, deps, function(dep){
                 if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
                 if(dep.slice(0, 1) === '.'){return context;}
                 return context ? context + '.' + dep : dep;
@@ -129,7 +133,7 @@ var parse = {
     */
     'text' : function(text, context){
         return text.replace(/{{([^}]*)}}/mg, function(t, match){
-            return expression(match, context, vm);
+            return expression(match, get(context), vm);
         });
     },
     //TODO cache context in node
@@ -152,7 +156,7 @@ var bind = {
 		if(name && tagName === 'input'){
 			switch (type){
 				case 'checkbox' : 
-					rs = $.findAll('[name="'+name+'"]:checked', form);
+					rs = findAll('[name="'+name+'"]:checked', form);
 					value = [];
 					rs && [].forEach.call(rs, function(el){
 						value.push(el.value);
@@ -160,7 +164,7 @@ var bind = {
 					value = value.join(',');
 					break;
 				case 'radio' : 
-					rs = $.find('[name="'+name+'"]:checked', form);
+					rs = find('[name="'+name+'"]:checked', form);
 					value = rs ? rs.value : '';
 					break;
 				default : 
@@ -173,16 +177,27 @@ var bind = {
 		}
 		set((context ? context + '.' : '') + model, value);
 	},
-	'list' : function(node){
+	'list' : function(node, prop){
 		var template = node.outerHTML;
+        var listMark = document.createComment('list for ' + prop),
+            listNodeCollection = [];
+        node.parentNode.replaceChild(node, listMark);
+        observe(prop, function(){
+            if(!listMark.parentNode){return;}
+            var list = get(prop);
+            if(!(list instanceof Array)){return;}
+            list.forEach(function(el){
+
+            });
+        });
 		// for(var data in list){
 
 		// }
 	},
     //node attribute
     'attr' : function(node, attrText, attrName){
-        var context = parse.context(node), deps = parse.deps(textContent, context), func;
-    	switch (attr){
+        var context = parse.context(node), deps = parse.deps(attrText, context), func;
+    	switch (attrName){
     		case 'checked' : 
         		var checkValue = node.value;
         		func = node.type === 'checkbox' ? 
@@ -197,16 +212,16 @@ var bind = {
         	case 'value' : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    node.value = parse.text(text, context);
+                    node.value = parse.text(attrText, context);
                 }
         	default : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    node.setAttribute(attr, parse.text(text, context));
+                    node.setAttribute(attrName, parse.text(attrText, context));
                 }
     	}
         deps.forEach(function(prop){
-            listener.add(prop, func, checkType);
+            observe(prop, func, checkType);
             checkProp.push(prop);
         });
     },
@@ -215,10 +230,10 @@ var bind = {
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
         func = function(){
             //TODO if(!node.parentNode){}
-            node.textContent = parse.text(text, context);
+            node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){
-            listener.add(prop, func, checkType);
+            observe(prop, func, checkType);
             checkProp.push(prop);
         });
         // checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));

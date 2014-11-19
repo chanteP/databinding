@@ -39,9 +39,10 @@ var listener = {
                 listener.fire(func, type, args[2]);
             }
         });
-        if(acc.parentNS !== null && acc.propagation && acc.propagationType.indexOf(type) >= 0){
-            listener.fire(acc.parentNS, type, args[2]);
-        }
+        //TODO
+        // if(acc.parentNS !== null && acc.propagation && acc.propagationType.indexOf(type) >= 0){
+        //     listener.fire(acc.parentNS, type, args[2]);
+        // }
         return this;
     },
     'add' : function(nameNS, func, evt){

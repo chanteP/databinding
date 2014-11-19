@@ -7,6 +7,6 @@ var DataBind = require('./DataBind'),
 
 new Accessor('', DataBind.root);
 
-require('./Expression');
-// require('./DomExtend');
+// require('./Expression');
+require('./DomExtend');
 window[name] = DataBind;

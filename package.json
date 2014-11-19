@@ -1,15 +1,15 @@
 {
-  "name": "databind",
-  "version": "0.0.0",
+  "name": "np-databind",
+  "version": "0.1.1",
   "description": "",
   "main": "core.js",
   "scripts": {
-    "preinstall": "npm install -g grunt-cli",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies" : {
-    "grunt-browserify" : ">=0.0.0"
+    "grunt-browserify" : ">=0.0.0",
+    "grunt-contrib-watch" : ">=0.0.0"
   },
-  "author": "",
+  "author": "chanteP",
   "license": "ISC"
 }
