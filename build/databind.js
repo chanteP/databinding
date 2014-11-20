@@ -46,14 +46,14 @@ Accessor.prototype.get = function(){
     return this.value;
 }
 Accessor.prototype.set = function(value, dirty, force){
+    var self = this;
     this.value = value;
     this.value = this.get();
 
-    if(this.parent){
+    if(this.parent && this instanceof Accessor){
         this.parent[this.name] = value;
     }
     //children
-
     dirty = this.dirty || dirty;
     if(!dirty){
         listener.fire(this.nameNS, 'set');
@@ -61,6 +61,13 @@ Accessor.prototype.set = function(value, dirty, force){
     }
     this.oldValue = value;
     this.dirty = false;
+
+    if(value instanceof Array){
+        //TODO
+        Object.observe(value, function(changes){
+            self.set(value, self.dirty, true);
+        });
+    }
     return value;
 }
 Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
@@ -186,12 +193,13 @@ var main = {
             }
         }
         base.nameNS && main.defProp(desc, base);
-        if(obj instanceof Array){
-            //TODO
-            Object.observe(obj, function(changes){
-                base.set(obj, base.dirty, true);
-            });
-        }
+        // if(base.parent && !config.mode){
+        //     Object.defineProperty(base.parent, base.name, {
+        //         get : base.get,
+        //         set : base.set
+        //     });
+        //     base.set(base.value);
+        // }
     }
 }
 
