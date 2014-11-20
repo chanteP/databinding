@@ -161,7 +161,16 @@ DataBind.checkListener  = function(nameNS, type){
     return listener.check(nameNS, type);
 }
 DataBind.get            = function(nameNS){
-    return Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
+    var index, value;
+    if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){
+        nameNS = index[1];
+        index = index[2];
+    }
+    value = Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
+    if(index !== null && value instanceof Array){
+        return value[index];
+    }
+    return value;
 };
 DataBind.set            = function(nameNS, value, dirty){
     Accessor(nameNS) && Accessor(nameNS).set(value, dirty);
@@ -171,7 +180,6 @@ DataBind.config         = function(cfg){
     'mode' in cfg && (config.mode = cfg.mode);
     'propagation' in cfg && (config.propagation = cfg.propagation);
 }
-
 DataBind.prototype.get  = function(propNS){
     return DataBind.get(main.parseNS(this._name, propNS));
 }

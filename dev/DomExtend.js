@@ -114,6 +114,9 @@ var parse = {
         expressions = parse.exps(text);
         expressions.forEach(function(exp){
             expression.parseDeps(exp, deps, function(dep){
+                if(dep.indexOf('[') >= 0){
+                    dep = dep.split('[')[0];
+                }
                 if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
                 if(dep.slice(0, 1) === '.'){return context;}
                 return context ? context + '.' + dep : dep;

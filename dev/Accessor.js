@@ -1,6 +1,8 @@
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
-        return nameNS in Accessor.storage ? Accessor.storage[nameNS] : false;
+        
+        if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
+        return Accessor.storage[nameNS];
     }
     else if(nameNS in Accessor.storage){
         Accessor.storage[nameNS].value = value;

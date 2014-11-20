@@ -1,7 +1,9 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
-        return nameNS in Accessor.storage ? Accessor.storage[nameNS] : false;
+        
+        if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
+        return Accessor.storage[nameNS];
     }
     else if(nameNS in Accessor.storage){
         Accessor.storage[nameNS].value = value;
@@ -239,7 +241,16 @@ DataBind.checkListener  = function(nameNS, type){
     return listener.check(nameNS, type);
 }
 DataBind.get            = function(nameNS){
-    return Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
+    var index, value;
+    if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){
+        nameNS = index[1];
+        index = index[2];
+    }
+    value = Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
+    if(index !== null && value instanceof Array){
+        return value[index];
+    }
+    return value;
 };
 DataBind.set            = function(nameNS, value, dirty){
     Accessor(nameNS) && Accessor(nameNS).set(value, dirty);
@@ -249,7 +260,6 @@ DataBind.config         = function(cfg){
     'mode' in cfg && (config.mode = cfg.mode);
     'propagation' in cfg && (config.propagation = cfg.propagation);
 }
-
 DataBind.prototype.get  = function(propNS){
     return DataBind.get(main.parseNS(this._name, propNS));
 }
@@ -396,6 +406,9 @@ var parse = {
         expressions = parse.exps(text);
         expressions.forEach(function(exp){
             expression.parseDeps(exp, deps, function(dep){
+                if(dep.indexOf('[') >= 0){
+                    dep = dep.split('[')[0];
+                }
                 if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
                 if(dep.slice(0, 1) === '.'){return context;}
                 return context ? context + '.' + dep : dep;
