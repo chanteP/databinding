@@ -1,7 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
-        
         if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
         return Accessor.storage[nameNS];
     }
@@ -32,6 +31,7 @@ var Accessor = function(nameNS, value){
 
     // this.list    = {};
     this.mode       = config.mode;
+    this.status     = this.READY;
 
     this.children   = [];
     this.propagation = config.propagation;
@@ -44,6 +44,11 @@ var Accessor = function(nameNS, value){
     Accessor.storage[this.nameNS] = this;
 }
 Accessor.storage = {};
+//ready > inited   
+//build > setValue  
+Accessor.prototype.READY = 0;
+Accessor.prototype.INITED = 1;
+
 Accessor.prototype.get = function(){
     return this.value;
 }
@@ -52,7 +57,7 @@ Accessor.prototype.set = function(value, dirty, force){
     this.value = value;
     this.value = this.get();
 
-    if(this.parent && this instanceof Accessor){
+    if(this.parent && config.mode){
         this.parent[this.name] = value;
     }
     //children
@@ -65,12 +70,41 @@ Accessor.prototype.set = function(value, dirty, force){
     this.dirty = false;
 
     if(value instanceof Array){
-        //TODO
+        //TODO 好挫！！！
+        var arrayChangeLock;
         Object.observe(value, function(changes){
+            if(arrayChangeLock){return;}
+            arrayChangeLock = true;
             self.set(value, self.dirty, true);
         });
     }
+    //TODO 其实楼上也要！mode才绑定，等实现set数组元素再说...
+    else if(!config.mode && value && value.__proto__ === Object.prototype){
+        for(var key in value){
+            if(!value.hasOwnProperty(key)){continue;}
+            childAcc = Accessor(this.parseProp(key));
+            childAcc && childAcc.bindProp();
+        }
+    }
     return value;
+}
+//mode=0 defineproperty绑定对象属性用
+Accessor.prototype.bindProp = function(){
+    if(this.mode || !this.parent || this.parent.__proto__ !== Object.prototype){return;}
+    var value = this.value, self = this;
+    Object.defineProperty(this.parent, this.name, {
+        set : function(value){
+            return self.set(value);
+        },
+        get : function(){
+            return self.get();
+        }
+    });
+    this.parent[this.name] = value;
+}
+Accessor.prototype.parseProp = function(prop){
+    if(!prop){return this.nameNS;}
+    return this.nameNS ? this.nameNS + '.' + prop : prop;
 }
 Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
     var acc = this instanceof Accessor ? this : Accessor(nameNS);
@@ -191,17 +225,11 @@ var main = {
         if(obj && obj.__proto__ === Object.prototype){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
-                main.register(obj[key], (base.nameNS ? base.nameNS + '.' : '') + key);
+                main.register(obj[key], base.parseProp(key));
             }
         }
         base.nameNS && main.defProp(desc, base);
-        // if(base.parent && !config.mode){
-        //     Object.defineProperty(base.parent, base.name, {
-        //         get : base.get,
-        //         set : base.set
-        //     });
-        //     base.set(base.value);
-        // }
+        !base.mode && base.bindProp();
     }
 }
 
@@ -320,6 +348,7 @@ var vm = DataBind.root,
     get = DataBind.get;
 
 var observe = listener.add,
+    destroy = listener.remove,
     fire = listener.fire;
 //################################################################################################################
 var evt = $.evt,
@@ -411,10 +440,13 @@ var parse = {
     */
     'deps' : function(text, context){
         var deps = [];
+        if(context.indexOf('[') >= 1){
+            return [context.split('[')[0]];
+        }
         expressions = parse.exps(text);
         expressions.forEach(function(exp){
             expression.parseDeps(exp, deps, function(dep){
-                if(dep.indexOf('[') >= 0){
+                if(dep.indexOf('[') >= 1){
                     dep = dep.split('[')[0];
                 }
                 if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
@@ -502,7 +534,7 @@ var bind = {
                 element.setAttribute(marker.bind, prop + '['+index+']');
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
-                main.scan(element);
+                // main.scan(element);
             });
         });
 	},
@@ -540,8 +572,12 @@ var bind = {
     //textNode
     'text' : function(node, textContent){
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
-        func = function(){
+        func = function(v, ov, e){
             //TODO if(!node.parentNode){}
+            if(!contains(document.body, node)){
+                destroy(e.nameNS, arguments.callee, checkType);
+                return;
+            }
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){

@@ -104,17 +104,11 @@ var main = {
         if(obj && obj.__proto__ === Object.prototype){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
-                main.register(obj[key], (base.nameNS ? base.nameNS + '.' : '') + key);
+                main.register(obj[key], base.parseProp(key));
             }
         }
         base.nameNS && main.defProp(desc, base);
-        // if(base.parent && !config.mode){
-        //     Object.defineProperty(base.parent, base.name, {
-        //         get : base.get,
-        //         set : base.set
-        //     });
-        //     base.set(base.value);
-        // }
+        !base.mode && base.bindProp();
     }
 }
 

@@ -20,6 +20,7 @@ var vm = DataBind.root,
     get = DataBind.get;
 
 var observe = listener.add,
+    destroy = listener.remove,
     fire = listener.fire;
 //################################################################################################################
 var evt = $.evt,
@@ -111,10 +112,13 @@ var parse = {
     */
     'deps' : function(text, context){
         var deps = [];
+        if(context.indexOf('[') >= 1){
+            return [context.split('[')[0]];
+        }
         expressions = parse.exps(text);
         expressions.forEach(function(exp){
             expression.parseDeps(exp, deps, function(dep){
-                if(dep.indexOf('[') >= 0){
+                if(dep.indexOf('[') >= 1){
                     dep = dep.split('[')[0];
                 }
                 if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
@@ -202,7 +206,7 @@ var bind = {
                 element.setAttribute(marker.bind, prop + '['+index+']');
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
-                main.scan(element);
+                // main.scan(element);
             });
         });
 	},
@@ -240,8 +244,12 @@ var bind = {
     //textNode
     'text' : function(node, textContent){
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
-        func = function(){
+        func = function(v, ov, e){
             //TODO if(!node.parentNode){}
+            if(!contains(document.body, node)){
+                destroy(e.nameNS, arguments.callee, checkType);
+                return;
+            }
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){

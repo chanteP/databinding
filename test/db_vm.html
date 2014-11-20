@@ -57,7 +57,7 @@
         <hr >
         <div id="formData"></div>
         <script type="text/javascript">
-            DataBind.config({mode:0})
+            DataBind.config({mode:1})
             var vm = DataBind.root;
             var exp = DataBind.expression;
 
@@ -67,8 +67,8 @@
                 job : 's',
                 intro : '123123123cfd',
                 table : [],
-                $change : function(){
-                    console.log('change')
+                $change : function(value, ov, e){
+                    console.log('change',value, ov, e)
                     formData.innerHTML = JSON.stringify(vm.form);
                 }
             };
