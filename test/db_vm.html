@@ -49,7 +49,7 @@
         <button id="tableM">-</button>
         <table vm-bind="form">
             <tr vm-list="form.table">
-                <td></td>
+                <td>{{.index}}</td>
                 <td>{{name}}</td>
                 <td>{{id}}</td>
             </tr>
@@ -57,7 +57,7 @@
         <hr >
         <div id="formData"></div>
         <script type="text/javascript">
-            DataBind.config({mode:1})
+            DataBind.config({mode:0});
             var vm = DataBind.root;
             var exp = DataBind.expression;
 
@@ -68,8 +68,9 @@
                 intro : '123123123cfd',
                 table : [],
                 $change : function(value, ov, e){
-                    console.log('change',value, ov, e)
-                    formData.innerHTML = JSON.stringify(vm.form);
+                    // console.log('change',value, ov, e)
+                    document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
+                    // console.log(JSON.stringify(vm.form));
                 }
             };
 

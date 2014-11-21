@@ -138,8 +138,8 @@ var DataBind = function(nameNS, obj, cfg){
 DataBind.root           = root;
 DataBind.storage        = Accessor.storage;
 
-DataBind.observe        = listener.subscribe;
-DataBind.fire           = listener.publish;
+DataBind.observe        = listener.add;
+DataBind.fire           = listener.fire;
 DataBind.destroy        = Accessor.destroy;
 DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);

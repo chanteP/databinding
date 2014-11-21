@@ -1,9 +1,11 @@
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
-        var list;
-        list = listener.topic[nameNS];
-        if(!build && (!list || !list[type])){
+        var list = listener.topic[nameNS];
+        if(list && list[type]){
+            return list[type];
+        }
+        if(!build){
             return false;
         }
         if(!list){
@@ -15,37 +17,57 @@ var listener = {
         return list[type];
     },
     'fire' : function(nameNS, type, extArgs){
-        var evtList = listener.check(nameNS, type);
-        var acc = Accessor(nameNS);
-        if(!evtList || !acc){return this;}
-        args = [acc.value, acc.oldValue, {
-            type:type, 
-            object:acc.parent,
-            name:acc.name, 
-            nameNS:acc.nameNS
-        }];
-        args[2] = merge(args[2], extArgs, {
-            propNS : nameNS,
-            prop : acc.name
-        });
-        evtList.forEach(function(func){
-            if(typeof func === 'function'){
+        type = type || 'change';
+        var fireBody = Accessor(nameNS);
+        if(!fireBody){return;}
+
+        listener._fireList = [];
+
+        listener._getFireProps(nameNS, type);
+        listener._fireList = unique(listener._fireList);
+
+        var evtList, acc, ns, args;
+        for(var i = 0, j = listener._fireList.length; i < j; i++){
+            ns = listener._fireList[i];
+            evtList = listener.check(ns, type);
+            if(!evtList){continue;}
+            acc = Accessor(ns);
+            args = [acc.value, acc.oldValue, {
+                type:type, 
+                object:fireBody.parent,
+                name:fireBody.name, 
+                nameNS:fireBody.nameNS,
+                prop:acc.name,
+                propNS:acc.nameNS
+            }];
+            args[2] = merge(args[2], extArgs);
+            evtList.forEach(function(func){
+                if(typeof func !== 'function'){return;}
                 func.apply(acc.parent, args);
-            }
-            else if(typeof func === 'string' && Accessor(func)){
-                var depAcc = Accessor(func);
-                depAcc.oldValue = depAcc.value;
-                depAcc.value = depAcc.get();
-                listener.fire(func, type, args[2]);
-            }
-        });
-        //TODO
-        // if(acc.parentNS !== null && acc.propagation && acc.propagationType.indexOf(type) >= 0){
-        //     listener.fire(acc.parentNS, type, args[2]);
-        // }
+            });
+        }
+        listener._fireList = null;
         return this;
     },
-    'add' : function(nameNS, func, evt){
+    '_fireList' : null,
+    '_getFireProps' : function(nameNS, type){
+        var acc = Accessor(nameNS);
+        if(!acc){return;}
+        listener._fireList.push(nameNS);
+        (listener.check(nameNS, type) || []).forEach(function(dep){
+            if(typeof dep === 'string'){
+                var depAcc = Accessor(dep);
+                depAcc.oldValue = depAcc.value;
+                depAcc.value = depAcc.get();
+                listener._getFireProps(dep);
+            }
+        });
+        if(acc.parentNS !== null && acc.propagation){
+            listener._getFireProps(acc.parentNS);
+        }
+    },
+    //TODO capture
+    'add' : function(nameNS, func, evt, capture){
         evt = evt || 'change';
         var evtList = listener.check(nameNS, evt, true);
         if(evtList.indexOf(func) < 0){
@@ -67,4 +89,5 @@ var listener = {
 module.exports = listener;
 var $ = require('./kit');
 var merge = $.merge;
+var unique = $.unique;
 var Accessor = require('./Accessor');

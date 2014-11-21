@@ -55,11 +55,16 @@ var main = {
         解析节点
     */
 	'scan' : function(node){
-		checkProp = [];
+		checkProp = {};
 		main.parseNode(node || document.body);
-		while(checkProp.length){
-			fire(checkProp.pop(), checkType);
-		}
+        var value;
+        for(var key in checkProp){
+            value = get(key);
+            checkProp[key].forEach(function(func){
+                func(value ,value);
+            });
+        }
+        checkProp = null;
 	},
     'parseNode' : function(node, scope){
         //elementNode
@@ -81,6 +86,12 @@ var main = {
             bind.text(node, node.textContent);
         }
         //其他节点管来干嘛
+    },
+    'addScanFunc' : function(prop, func){
+        if(!checkProp[prop]){
+            checkProp[prop] = [];
+        }
+        checkProp[prop].push(func);
     }
 };
 var check = {
@@ -192,11 +203,12 @@ var bind = {
         var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
         node.parentNode.replaceChild(listMark, node);
-        observe(prop, function(){
+        observe(prop, function(v, ov, e){
             if(!listMark.parentNode){return;}
             var list = get(prop);
             if(!(list instanceof Array)){return;}
             var content = listMark.parentNode;
+
             [].forEach.call(listNodeCollection, function(element){
                 remove(element);
             });
@@ -206,7 +218,7 @@ var bind = {
                 element.setAttribute(marker.bind, prop + '['+index+']');
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
-                // main.scan(element);
+                main.scan(element);
             });
         });
 	},
@@ -237,8 +249,7 @@ var bind = {
                 }
     	}
         deps.forEach(function(prop){
-            observe(prop, func, checkType);
-            checkProp.push(prop);
+            main.addScanFunc(prop, observe(prop, func, checkType));
         });
     },
     //textNode
@@ -246,15 +257,14 @@ var bind = {
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
         func = function(v, ov, e){
             //TODO if(!node.parentNode){}
-            if(!contains(document.body, node)){
+            if(e && !contains(document.body, node)){
                 destroy(e.nameNS, arguments.callee, checkType);
                 return;
             }
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){
-            observe(prop, func, checkType);
-            checkProp.push(prop);
+            main.addScanFunc(prop, observe(prop, func, checkType));
         });
         // checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));
     }

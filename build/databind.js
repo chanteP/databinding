@@ -259,8 +259,8 @@ var DataBind = function(nameNS, obj, cfg){
 DataBind.root           = root;
 DataBind.storage        = Accessor.storage;
 
-DataBind.observe        = listener.subscribe;
-DataBind.fire           = listener.publish;
+DataBind.observe        = listener.add;
+DataBind.fire           = listener.fire;
 DataBind.destroy        = Accessor.destroy;
 DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);
@@ -383,11 +383,16 @@ var main = {
         解析节点
     */
 	'scan' : function(node){
-		checkProp = [];
+		checkProp = {};
 		main.parseNode(node || document.body);
-		while(checkProp.length){
-			fire(checkProp.pop(), checkType);
-		}
+        var value;
+        for(var key in checkProp){
+            value = get(key);
+            checkProp[key].forEach(function(func){
+                func(value ,value);
+            });
+        }
+        checkProp = null;
 	},
     'parseNode' : function(node, scope){
         //elementNode
@@ -409,6 +414,12 @@ var main = {
             bind.text(node, node.textContent);
         }
         //其他节点管来干嘛
+    },
+    'addScanFunc' : function(prop, func){
+        if(!checkProp[prop]){
+            checkProp[prop] = [];
+        }
+        checkProp[prop].push(func);
     }
 };
 var check = {
@@ -520,11 +531,12 @@ var bind = {
         var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
         node.parentNode.replaceChild(listMark, node);
-        observe(prop, function(){
+        observe(prop, function(v, ov, e){
             if(!listMark.parentNode){return;}
             var list = get(prop);
             if(!(list instanceof Array)){return;}
             var content = listMark.parentNode;
+
             [].forEach.call(listNodeCollection, function(element){
                 remove(element);
             });
@@ -534,7 +546,7 @@ var bind = {
                 element.setAttribute(marker.bind, prop + '['+index+']');
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
-                // main.scan(element);
+                main.scan(element);
             });
         });
 	},
@@ -565,8 +577,7 @@ var bind = {
                 }
     	}
         deps.forEach(function(prop){
-            observe(prop, func, checkType);
-            checkProp.push(prop);
+            main.addScanFunc(prop, observe(prop, func, checkType));
         });
     },
     //textNode
@@ -574,15 +585,14 @@ var bind = {
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
         func = function(v, ov, e){
             //TODO if(!node.parentNode){}
-            if(!contains(document.body, node)){
+            if(e && !contains(document.body, node)){
                 destroy(e.nameNS, arguments.callee, checkType);
                 return;
             }
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){
-            observe(prop, func, checkType);
-            checkProp.push(prop);
+            main.addScanFunc(prop, observe(prop, func, checkType));
         });
         // checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));
     }
@@ -695,9 +705,11 @@ module.exports = expression;
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
-        var list;
-        list = listener.topic[nameNS];
-        if(!build && (!list || !list[type])){
+        var list = listener.topic[nameNS];
+        if(list && list[type]){
+            return list[type];
+        }
+        if(!build){
             return false;
         }
         if(!list){
@@ -709,37 +721,57 @@ var listener = {
         return list[type];
     },
     'fire' : function(nameNS, type, extArgs){
-        var evtList = listener.check(nameNS, type);
-        var acc = Accessor(nameNS);
-        if(!evtList || !acc){return this;}
-        args = [acc.value, acc.oldValue, {
-            type:type, 
-            object:acc.parent,
-            name:acc.name, 
-            nameNS:acc.nameNS
-        }];
-        args[2] = merge(args[2], extArgs, {
-            propNS : nameNS,
-            prop : acc.name
-        });
-        evtList.forEach(function(func){
-            if(typeof func === 'function'){
+        type = type || 'change';
+        var fireBody = Accessor(nameNS);
+        if(!fireBody){return;}
+
+        listener._fireList = [];
+
+        listener._getFireProps(nameNS, type);
+        listener._fireList = unique(listener._fireList);
+
+        var evtList, acc, ns, args;
+        for(var i = 0, j = listener._fireList.length; i < j; i++){
+            ns = listener._fireList[i];
+            evtList = listener.check(ns, type);
+            if(!evtList){continue;}
+            acc = Accessor(ns);
+            args = [acc.value, acc.oldValue, {
+                type:type, 
+                object:fireBody.parent,
+                name:fireBody.name, 
+                nameNS:fireBody.nameNS,
+                prop:acc.name,
+                propNS:acc.nameNS
+            }];
+            args[2] = merge(args[2], extArgs);
+            evtList.forEach(function(func){
+                if(typeof func !== 'function'){return;}
                 func.apply(acc.parent, args);
-            }
-            else if(typeof func === 'string' && Accessor(func)){
-                var depAcc = Accessor(func);
-                depAcc.oldValue = depAcc.value;
-                depAcc.value = depAcc.get();
-                listener.fire(func, type, args[2]);
-            }
-        });
-        //TODO
-        // if(acc.parentNS !== null && acc.propagation && acc.propagationType.indexOf(type) >= 0){
-        //     listener.fire(acc.parentNS, type, args[2]);
-        // }
+            });
+        }
+        listener._fireList = null;
         return this;
     },
-    'add' : function(nameNS, func, evt){
+    '_fireList' : null,
+    '_getFireProps' : function(nameNS, type){
+        var acc = Accessor(nameNS);
+        if(!acc){return;}
+        listener._fireList.push(nameNS);
+        (listener.check(nameNS, type) || []).forEach(function(dep){
+            if(typeof dep === 'string'){
+                var depAcc = Accessor(dep);
+                depAcc.oldValue = depAcc.value;
+                depAcc.value = depAcc.get();
+                listener._getFireProps(dep);
+            }
+        });
+        if(acc.parentNS !== null && acc.propagation){
+            listener._getFireProps(acc.parentNS);
+        }
+    },
+    //TODO capture
+    'add' : function(nameNS, func, evt, capture){
         evt = evt || 'change';
         var evtList = listener.check(nameNS, evt, true);
         if(evtList.indexOf(func) < 0){
@@ -761,6 +793,7 @@ var listener = {
 module.exports = listener;
 var $ = require('./kit');
 var merge = $.merge;
+var unique = $.unique;
 var Accessor = require('./Accessor');
 
 },{"./Accessor":1,"./kit":8}],6:[function(require,module,exports){
@@ -785,6 +818,7 @@ new Accessor('', DataBind.root);
 // require('./Expression');
 require('./DomExtend');
 window[name] = DataBind;
+
 },{"./Accessor":1,"./DataBind":2,"./DomExtend":3}],8:[function(require,module,exports){
 var $ = {};
 // require('./jquery.hammer.min');
