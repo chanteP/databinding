@@ -282,6 +282,11 @@ DataBind.setPropagation = function(nameNS, bool, type){
     }
     return this;
 };
+DataBind.init           = function(){
+    new Accessor('', DataBind.root);
+    DataBind.init = function(){};
+    return DataBind;
+}
 DataBind.parseProp      = Accessor.parseProp;
 DataBind.check          = function(nameNS){
     return Accessor(nameNS);
@@ -911,17 +916,11 @@ module.exports = config;
 
 var name = 'DataBind';
 if(name in window){return;}
-
-var DataBind = require('./DataBind'),
-    Accessor = require('./Accessor');
-
-new Accessor('', DataBind.root);
-
+window[name] = require('./DataBind').init();;
 // require('./Expression');
 require('./DomExtend');
-window[name] = DataBind;
 
-},{"./Accessor":1,"./DataBind":2,"./DomExtend":3}],9:[function(require,module,exports){
+},{"./DataBind":2,"./DomExtend":3}],9:[function(require,module,exports){
 var $ = {};
 // require('./jquery.hammer.min');
 

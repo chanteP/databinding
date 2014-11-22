@@ -156,6 +156,11 @@ DataBind.setPropagation = function(nameNS, bool, type){
     }
     return this;
 };
+DataBind.init           = function(){
+    new Accessor('', DataBind.root);
+    DataBind.init = function(){};
+    return DataBind;
+}
 DataBind.parseProp      = Accessor.parseProp;
 DataBind.check          = function(nameNS){
     return Accessor(nameNS);
