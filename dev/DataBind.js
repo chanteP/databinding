@@ -128,9 +128,13 @@ var DataBind = function(nameNS, obj, cfg){
     main.register(root, '');
     this.name = this._name = nameNS;
 
+    //TODO 改输出就是麻烦...
     if(!config.mode){
         var acc = Accessor(nameNS),
             exports = acc.value;
+        if(exports === null || exports === undefined){
+            exports = {};
+        }
         exports.__proto__ = Object.create(expApi, {'_name':{'value' : nameNS}});
         return exports;
     }
@@ -141,7 +145,9 @@ DataBind.storage        = Accessor.storage;
 DataBind.observe        = listener.add;
 DataBind.unobserve      = listener.remove;
 DataBind.fire           = listener.fire;
+
 DataBind.destroy        = Accessor.destroy;
+
 DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);
     if(check){
@@ -150,6 +156,7 @@ DataBind.setPropagation = function(nameNS, bool, type){
     }
     return this;
 };
+DataBind.parseProp      = Accessor.parseProp;
 DataBind.check          = function(nameNS){
     return Accessor(nameNS);
 }

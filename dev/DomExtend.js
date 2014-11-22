@@ -179,6 +179,12 @@ var bind = {
 		var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
 		var model = this.getAttribute(marker.model), context = parse.context(this);
 		var value = '', form = this.form || document.body, rs;
+
+        model = DataBind.parseProp(model, context);
+        if(!DataBind.check(model)){
+            new DataBind(model);
+        }
+
 		if(name && tagName === 'input'){
 			switch (type){
 				case 'checkbox' : 
@@ -201,7 +207,7 @@ var bind = {
 		else{
 			value = this.value;
 		}
-		set((context ? context + '.' : '') + model, value);
+		set(model, value);
 	},
 	'list' : function(node, prop){
 		var template = node.outerHTML;

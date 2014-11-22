@@ -31,7 +31,7 @@ $.log = function(part, info, e){
                 e == 'warn' ? 'warn' :
                 e == 'info' ? 'info' :
                 'log';
-    var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
+    var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + '\n' + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
     config.debug && $.log.list.push(msg);
     config.debug && console && console[type](msg);
     return msg;

@@ -19,10 +19,13 @@
     </head>
     <body>
         <div id="wrapper">
+        <div>
+            <input vm-model="calc.p1">+<input vm-model="calc.p2">=<span>{{calc.p1 - -calc.p2}}</span>=<span>{{calc.p3}}</span>
+        </div>
         <form vm-bind="form">
             <div>
                 <label>姓名</label><input name="name" vm-model="name" value="{{name}}">
-                <span>名字哪有那么长的啊</span>
+                <span style="display:{{name['length'] >= 12 ? 'block' : 'none'}};color:#c00;">名字哪有那么长的啊</span>
             </div>
             <div>
                 <label>性别</label>
@@ -91,6 +94,12 @@
                 // console.log('change',value, ov, e)
                 document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
                 // console.log(JSON.stringify(vm.form));
+            });
+
+            new DataBind('calc.p3', {
+                $get : function(){
+                    return +this.p1 + +this.p2;
+                }
             });
 
             tableP.onclick = function(){

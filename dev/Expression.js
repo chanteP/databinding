@@ -92,7 +92,12 @@ var expression = function(expressionText, scope, vm, extra){
     extra = extra || {};
     extra.value = scope;
 
-    var rs = getValue(execData.expression, scope, vm, extra);
+    var rs = '';
+    try{
+        rs = getValue(execData.expression, scope, vm, extra);
+    }catch(e){
+        log('DataBind.expression', 'getValue: fetch error, function body :\n' + parserCache[execData.expression], e);
+    }
     if(execData.filterName && filter.hasOwnProperty(execData.filterName)){
         try{
             rs = filter[execData.filterName].apply(scope, [rs, extra].concat(execData.filterArgs));

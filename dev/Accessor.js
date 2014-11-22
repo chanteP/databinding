@@ -48,6 +48,11 @@ Accessor.storage = {};
 Accessor.prototype.READY = 0;
 Accessor.prototype.INITED = 1;
 
+
+Accessor.parseProp = function(prop, context){
+    if(!prop){return context;}
+    return context ? context + '.' + prop : prop;
+}
 Accessor.prototype.get = function(){
     return this.value;
 }

@@ -49,6 +49,11 @@ Accessor.storage = {};
 Accessor.prototype.READY = 0;
 Accessor.prototype.INITED = 1;
 
+
+Accessor.parseProp = function(prop, context){
+    if(!prop){return context;}
+    return context ? context + '.' + prop : prop;
+}
 Accessor.prototype.get = function(){
     return this.value;
 }
@@ -249,9 +254,13 @@ var DataBind = function(nameNS, obj, cfg){
     main.register(root, '');
     this.name = this._name = nameNS;
 
+    //TODO 改输出就是麻烦...
     if(!config.mode){
         var acc = Accessor(nameNS),
             exports = acc.value;
+        if(exports === null || exports === undefined){
+            exports = {};
+        }
         exports.__proto__ = Object.create(expApi, {'_name':{'value' : nameNS}});
         return exports;
     }
@@ -262,7 +271,9 @@ DataBind.storage        = Accessor.storage;
 DataBind.observe        = listener.add;
 DataBind.unobserve      = listener.remove;
 DataBind.fire           = listener.fire;
+
 DataBind.destroy        = Accessor.destroy;
+
 DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);
     if(check){
@@ -271,6 +282,7 @@ DataBind.setPropagation = function(nameNS, bool, type){
     }
     return this;
 };
+DataBind.parseProp      = Accessor.parseProp;
 DataBind.check          = function(nameNS){
     return Accessor(nameNS);
 }
@@ -508,6 +520,12 @@ var bind = {
 		var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
 		var model = this.getAttribute(marker.model), context = parse.context(this);
 		var value = '', form = this.form || document.body, rs;
+
+        model = DataBind.parseProp(model, context);
+        if(!DataBind.check(model)){
+            new DataBind(model);
+        }
+
 		if(name && tagName === 'input'){
 			switch (type){
 				case 'checkbox' : 
@@ -530,7 +548,7 @@ var bind = {
 		else{
 			value = this.value;
 		}
-		set((context ? context + '.' : '') + model, value);
+		set(model, value);
 	},
 	'list' : function(node, prop){
 		var template = node.outerHTML;
@@ -711,7 +729,12 @@ var expression = function(expressionText, scope, vm, extra){
     extra = extra || {};
     extra.value = scope;
 
-    var rs = getValue(execData.expression, scope, vm, extra);
+    var rs = '';
+    try{
+        rs = getValue(execData.expression, scope, vm, extra);
+    }catch(e){
+        log('DataBind.expression', 'getValue: fetch error, function body :\n' + parserCache[execData.expression], e);
+    }
     if(execData.filterName && filter.hasOwnProperty(execData.filterName)){
         try{
             rs = filter[execData.filterName].apply(scope, [rs, extra].concat(execData.filterArgs));
@@ -932,7 +955,7 @@ $.log = function(part, info, e){
                 e == 'warn' ? 'warn' :
                 e == 'info' ? 'info' :
                 'log';
-    var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
+    var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + '\n' + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
     config.debug && $.log.list.push(msg);
     config.debug && console && console[type](msg);
     return msg;
