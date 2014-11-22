@@ -16,10 +16,19 @@ module.exports = function(grunt) {
           spawn: false,
         },
       },
+    },
+    uglify: {
+      dist: {
+        files: {
+          'build/databind.min.js': ['build/databind.js'],
+        }
+      }
     }
   })
   grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  grunt.registerTask('default', ['browserify', 'watch']);
+  grunt.registerTask('default', ['browserify', 'uglify']);
+  grunt.registerTask('dev', ['browserify', 'watch']);
 }

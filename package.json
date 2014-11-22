@@ -9,7 +9,8 @@
   "dependencies" : {
     "grunt-cli" : ">=0.0.0",
     "grunt-browserify" : ">=0.0.0",
-    "grunt-contrib-watch" : ">=0.0.0"
+    "grunt-contrib-watch" : ">=0.0.0",
+    "grunt-contrib-uglify" : ">=0.0.0"
   },
   "author": "chanteP",
   "license": "ISC"
