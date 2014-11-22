@@ -271,7 +271,7 @@ var bind = {
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
         func = function(v, ov, e){
             //TODO if(!node.parentNode){}
-            if(e && !contains(document.body, node)){
+            if(e && !contains(document.documentElement, node)){
                 destroy(e.nameNS, func, checkType);
                 return;
             }
