@@ -89,6 +89,10 @@ $.remove    = function(node){
     }
 }
 $.evt = function(element, data){
+    if(!('Zepto' in window)){
+        log('kit.evt', '找不到zepto残念...到93行改事件库或者手动加载？');
+        return;
+    }
     var obj = typeof data === 'undefined' ?
         Zepto(element):
         Zepto(element).hammer(data);
