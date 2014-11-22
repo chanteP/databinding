@@ -139,6 +139,7 @@ DataBind.root           = root;
 DataBind.storage        = Accessor.storage;
 
 DataBind.observe        = listener.add;
+DataBind.unobserve      = listener.remove;
 DataBind.fire           = listener.fire;
 DataBind.destroy        = Accessor.destroy;
 DataBind.setPropagation = function(nameNS, bool, type){
@@ -171,10 +172,7 @@ DataBind.set            = function(nameNS, value, dirty){
     Accessor(nameNS) && Accessor(nameNS).set(value, dirty);
     return value;
 };
-DataBind.config         = function(cfg){
-    'mode' in cfg && (config.mode = cfg.mode);
-    'propagation' in cfg && (config.propagation = cfg.propagation);
-}
+DataBind.config         = config.set;
 DataBind.prototype.get  = function(propNS){
     return DataBind.get(main.parseNS(this._name, propNS));
 }
@@ -189,6 +187,9 @@ DataBind.prototype.checkListener = function(propNS, type){
 };
 DataBind.prototype.observe = function(propNS, func, evt){
     return DataBind.observe(main.parseNS(this._name, propNS), func, evt);
+};
+DataBind.prototype.unobserve = function(propNS, func, evt){
+    return DataBind.unobserve(main.parseNS(this._name, propNS), func, evt);
 };
 DataBind.prototype.fire = function(propNS, evt, args){
     return DataBind.fire(main.parseNS(this._name, propNS), evt, args);

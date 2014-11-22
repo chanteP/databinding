@@ -4,19 +4,19 @@
 */
 var DataBind = require('./DataBind');
 var $ = require('./kit');
+var Filter = require('./Filter');
 
 var scopeHolder = '$data', selfHolder = '$self';
 //################################################################################################################
 var log = $.log;
 var get = DataBind.get;
 var emptyFunc = function(){return '';};
+var filterArgsSplitMark = ';';
+var filter = Filter.list;
 //################################################################################################################
-var getValue = function(expression, scope, vm){
-    return parser(expression)(scope, vm, scope);
+var getValue = function(expression, scope, vm, extra){
+    return parser(expression)(scope, vm, extra);
 }
-//################################################################################################################
-var filter = {
-};
 //################################################################################################################
 var funcPropCheck = function(propText){
     return '(typeof '+propText+' === "undefined" ? "" : '+propText+')';
@@ -57,8 +57,11 @@ var parser = function(expression){
     
 */
 var parseDeps = function(expression, matchList, matchCallback){
+    //TODO cache
     if(!matchList && !matchCallback){return;}
+    expression = getExpressionPart(expression).expression;
     var reg = /(?=\b|\.)(?!\'|\")([\w|\.]+)(?!\'|\")\b/g, expressionBody;
+    //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
     expressionBody = expression.replace(reg, function(text, match){
         if(isNaN(match)){
             var dep = matchCallback ? matchCallback(match) : match;
@@ -69,24 +72,42 @@ var parseDeps = function(expression, matchList, matchCallback){
     });
     return expressionBody;
 }
-
-//################################################################################################################
-var expression = function(expressionText, scope, vm){
-    if(typeof expressionText !== 'string' || !expressionText.trim() || expressionText[0] === '#'){return '';}
-    //{{expression | filter}}
+var getExpressionPart = function(expressionText){
+    //TODO cache
     var part = expressionText.split(/\|{1,1}/),
         exp = part.shift(),
-        filterArgs = /^\s*([\w]+)\(([\w\s\,]+)\)/.exec(part.join(''));
+        filterArgs = /^\s*([\w\-]+)(?:\((.+)\))?/.exec(part.join('|'));
+    return {
+        expression : exp.trim(),
+        filterName : filterArgs && filterArgs[1].trim(),
+        filterArgs : filterArgs && filterArgs[2] && filterArgs[2].split(filterArgsSplitMark)
+    }
+}
 
-    var rs = getValue(exp, scope, vm);
-    if(filterArgs && (filterArgs[1] in filter)){
-        return filter[filterArgs[1]].call(null, [rs].concat(filterArgs[2].split(',')));
+//################################################################################################################
+var expression = function(expressionText, scope, vm, extra){
+    if(typeof expressionText !== 'string' || !expressionText.trim() || expressionText[0] === '#'){return '';}
+    //{{expression | filter}}
+    var execData = getExpressionPart(expressionText);
+    extra = extra || {};
+    extra.value = scope;
+
+    var rs = getValue(execData.expression, scope, vm, extra);
+    if(execData.filterName && filter.hasOwnProperty(execData.filterName)){
+        try{
+            rs = filter[execData.filterName].apply(scope, [rs, extra].concat(execData.filterArgs));
+        }catch(e){
+            log('DataBind.expression', 'filter:' + execData.filterName + ' error, args: "' + execData.filterArgs + '"', e);
+        }
     }
     return rs;
 }
+//################################################################################################################
 DataBind.expression = expression;
 DataBind.expression.parseDeps = parseDeps;
-DataBind.expression.parserCache = parserCache;
+DataBind.expression.register = Filter.register;
 
+DataBind.expression.parserCache = parserCache;
+//################################################################################################################
 module.exports = expression;
 

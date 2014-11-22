@@ -22,6 +22,7 @@
         <form vm-bind="form">
             <div>
                 <label>姓名</label><input name="name" vm-model="name" value="{{name}}">
+                <span>名字哪有那么长的啊</span>
             </div>
             <div>
                 <label>性别</label>
@@ -30,7 +31,7 @@
             </div>
             <div>
                 <label>职业</label>
-                <label><input type="checkbox" name="job" vm-model="job" value="m" checked="{{job}}">魔法</label>
+                <label><input type="checkbox" name="job" vm-model="job" value="m" checked="{{job}}">法师</label>
                 <label><input type="checkbox" name="job" vm-model="job" value="s" checked="{{job}}">剑士</label>
             </div>
             <div>
@@ -41,8 +42,8 @@
         <hr >
         <div id="info" vm-bind="form">
             <p>{{name['length']}}</p>
-            <p>姓名是{{name == '' ? '无' : name}}, {{sex == 'male' ? '基佬' : '妹纸'}}, 职业 {{job}}</p>
-            <p>{{intro}}</p><span style="display:{{intro['length'] > 10 ? 'block' : 'none'}};color:#c00;">超过10个字了卧槽</span>
+            <p>姓名是{{name == '' ? '无' : name}}, {{sex == 'male' ? '基佬' : '妹纸'}}, 职业 {{job | map({"m":"法师","s":"剑士"};,)}}</p>
+            <p>{{intro | text-overflow}}</p><span style="display:{{intro['length'] > 16 ? 'block' : 'none'}};color:#c00;">超过16个字了卧槽</span>
         </div>
         <div>{{form.table['length']}}</div>
         <button id="tableP">+</button>
@@ -61,30 +62,47 @@
             var vm = DataBind.root;
             var exp = DataBind.expression;
 
+            var newL = function(){
+                return {
+                    id : Date.now(),
+                    name : String.fromCharCode((Math.random()*43244)|0)
+                }
+            }
             var formData = {
-                name : 'dsfgdfg',
+                name : {
+                    $value : 'dsfgdfg',
+                    $set : function(v){
+                        return v.length > 12 ? v.slice(0, 12) : v;
+                    }
+                },
                 sex : 'female',
                 job : 's',
                 intro : '123123123cfd',
-                table : [],
-                $change : function(value, ov, e){
-                    // console.log('change',value, ov, e)
-                    document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
-                    // console.log(JSON.stringify(vm.form));
-                }
+                table : [
+                    newL(),
+                    newL(),
+                    newL(),
+                    newL(),
+                    newL()
+                ]
             };
 
-            new DataBind('form', formData);
+            new DataBind('form', formData).observe('', function(value, ov, e){
+                // console.log('change',value, ov, e)
+                document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
+                // console.log(JSON.stringify(vm.form));
+            });
 
             tableP.onclick = function(){
-                formData.table.push({
-                    id : Date.now(),
-                    name : String.fromCharCode((Math.random()*43244)|0)
-                })
+                formData.table.push(newL())
             }
             tableM.onclick = function(){
                 formData.table.pop();
             }
+
+            console.log(formData)
+
+            // tableP.onclick();tableP.onclick();
 
         </script>
     </body>

@@ -118,7 +118,7 @@ module.exports = Accessor;
 var config = require('./config');
 var listener = require('./Observer');
 
-},{"./Observer":5,"./config":6}],2:[function(require,module,exports){
+},{"./Observer":6,"./config":7}],2:[function(require,module,exports){
 /*
     mode ? accessor : defineProp
     var db = new DataBind('prop1.prop2', {
@@ -260,6 +260,7 @@ DataBind.root           = root;
 DataBind.storage        = Accessor.storage;
 
 DataBind.observe        = listener.add;
+DataBind.unobserve      = listener.remove;
 DataBind.fire           = listener.fire;
 DataBind.destroy        = Accessor.destroy;
 DataBind.setPropagation = function(nameNS, bool, type){
@@ -292,10 +293,7 @@ DataBind.set            = function(nameNS, value, dirty){
     Accessor(nameNS) && Accessor(nameNS).set(value, dirty);
     return value;
 };
-DataBind.config         = function(cfg){
-    'mode' in cfg && (config.mode = cfg.mode);
-    'propagation' in cfg && (config.propagation = cfg.propagation);
-}
+DataBind.config         = config.set;
 DataBind.prototype.get  = function(propNS){
     return DataBind.get(main.parseNS(this._name, propNS));
 }
@@ -311,6 +309,9 @@ DataBind.prototype.checkListener = function(propNS, type){
 DataBind.prototype.observe = function(propNS, func, evt){
     return DataBind.observe(main.parseNS(this._name, propNS), func, evt);
 };
+DataBind.prototype.unobserve = function(propNS, func, evt){
+    return DataBind.unobserve(main.parseNS(this._name, propNS), func, evt);
+};
 DataBind.prototype.fire = function(propNS, evt, args){
     return DataBind.fire(main.parseNS(this._name, propNS), evt, args);
 };
@@ -325,21 +326,21 @@ if('defineProperty' in Object){
     }
 }
 module.exports = DataBind;
-},{"./Accessor":1,"./Observer":5,"./config":6,"./kit":8}],3:[function(require,module,exports){
+},{"./Accessor":1,"./Observer":6,"./config":7,"./kit":9}],3:[function(require,module,exports){
 var DataBind = require('./DataBind');
-var listener = require('./Observer');
 var expression = require('./Expression');
 var config = require('./config');
 
 var $ = require('./kit');
 
-var expPreg = /{{([^}]+)}}/m;
+var expPreg = /{{(.*?)}}/m;
 var prefix = 'vm-';
 var marker = {
 	'model' : prefix + 'model',
 	'list' : prefix + 'list',
 	'bind' : prefix + 'bind'
 }
+var indexPreg = /\[(\d+)\]$/;
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
 
@@ -347,9 +348,9 @@ var vm = DataBind.root,
     set = DataBind.set,
     get = DataBind.get;
 
-var observe = listener.add,
-    destroy = listener.remove,
-    fire = listener.fire;
+var observe = DataBind.observe,
+    destroy = DataBind.unobserve,
+    fire = DataBind.fire;
 //################################################################################################################
 var evt = $.evt,
     find = $.find,
@@ -389,7 +390,8 @@ var main = {
         for(var key in checkProp){
             value = get(key);
             checkProp[key].forEach(function(func){
-                func(value ,value);
+                //TODO apply?
+                func(value, value);
             });
         }
         checkProp = null;
@@ -419,6 +421,7 @@ var main = {
         if(!checkProp[prop]){
             checkProp[prop] = [];
         }
+        observe(prop, func, checkType);
         checkProp[prop].push(func);
     }
 };
@@ -438,11 +441,10 @@ var check = {
     */
     'list' : function(node){
         var listProp = node.getAttribute(marker.list);
-        if(listProp !== null){
-            node.removeAttribute(marker.list);
-            bind.list(node, listProp);
-            return true;
-        }
+        if(listProp === null){return;}
+        node.removeAttribute(marker.list);
+        bind.list(node, listProp);
+        return true;
     }
 }
 var parse = {
@@ -471,7 +473,7 @@ var parse = {
         Array 分解出表达式部分
     */
     'exps' : function(text){
-        var expressions = [], preg = /{{([^}]*)}}/mg, match;
+        var expressions = [], preg = new RegExp(expPreg.source, 'mg'), match;
         while(match = preg.exec(text)){
             expressions.push(match[1]);
         }
@@ -481,8 +483,12 @@ var parse = {
         String 根据表达式解析text
     */
     'text' : function(text, context){
-        return text.replace(/{{([^}]*)}}/mg, function(t, match){
-            return expression(match, get(context), vm);
+        var extra, rs, value = get(context);
+        if(rs = indexPreg.exec(context)){
+            extra = {index:rs[1],name:value};
+        }
+        return text.replace(new RegExp(expPreg.source, 'mg'), function(t, match){
+            return expression(match, value, vm, extra);
         });
     },
     //TODO cache context in node
@@ -531,7 +537,7 @@ var bind = {
         var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
         node.parentNode.replaceChild(listMark, node);
-        observe(prop, function(v, ov, e){
+        main.addScanFunc(prop, function(v, ov, e){
             if(!listMark.parentNode){return;}
             var list = get(prop);
             if(!(list instanceof Array)){return;}
@@ -541,8 +547,8 @@ var bind = {
                 remove(element);
             });
             list.forEach(function(dataElement, index){
-                var element = create(template),
-                    scope = Object.create(dataElement, {index:{value:index}});
+                var element = create(template);
+                // var scope = Object.create(dataElement, {index:{value:index}});
                 element.setAttribute(marker.bind, prop + '['+index+']');
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
@@ -565,19 +571,22 @@ var bind = {
             //TODO if(!node.parentNode){}
         			node.checked = value === checkValue;
         		};
+                break;
         	case 'value' : 
                 func = function(){
             //TODO if(!node.parentNode){}
                     node.value = parse.text(attrText, context);
                 }
+                break;
         	default : 
                 func = function(){
             //TODO if(!node.parentNode){}
                     node.setAttribute(attrName, parse.text(attrText, context));
                 }
+                break;
     	}
         deps.forEach(function(prop){
-            main.addScanFunc(prop, observe(prop, func, checkType));
+            main.addScanFunc(prop, func);
         });
     },
     //textNode
@@ -586,20 +595,20 @@ var bind = {
         func = function(v, ov, e){
             //TODO if(!node.parentNode){}
             if(e && !contains(document.body, node)){
-                destroy(e.nameNS, arguments.callee, checkType);
+                destroy(e.nameNS, func, checkType);
                 return;
             }
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){
-            main.addScanFunc(prop, observe(prop, func, checkType));
+            main.addScanFunc(prop, func);
         });
-        // checkProp.splice.apply(checkProp, [-1, 0].concat(deps.pop()));
     }
 }
 //################################################################################################################
 DataBind.scan = main.scan;
 DataBind.bindContent = main.bindContent;
+//################################################################################################################
 config.initDOM && window.document && window.document.addEventListener('DOMContentLoaded', function(){
     main.bindContent(document.body);
     main.scan(document.documentElement);
@@ -607,26 +616,26 @@ config.initDOM && window.document && window.document.addEventListener('DOMConten
 
 
 
-},{"./DataBind":2,"./Expression":4,"./Observer":5,"./config":6,"./kit":8}],4:[function(require,module,exports){
+},{"./DataBind":2,"./Expression":4,"./config":7,"./kit":9}],4:[function(require,module,exports){
 /*
     expression('a.b.c', {a:xxx}, vm)
     整个文件跟{{}}没关系啦
 */
 var DataBind = require('./DataBind');
 var $ = require('./kit');
+var Filter = require('./Filter');
 
 var scopeHolder = '$data', selfHolder = '$self';
 //################################################################################################################
 var log = $.log;
 var get = DataBind.get;
 var emptyFunc = function(){return '';};
+var filterArgsSplitMark = ';';
+var filter = Filter.list;
 //################################################################################################################
-var getValue = function(expression, scope, vm){
-    return parser(expression)(scope, vm, scope);
+var getValue = function(expression, scope, vm, extra){
+    return parser(expression)(scope, vm, extra);
 }
-//################################################################################################################
-var filter = {
-};
 //################################################################################################################
 var funcPropCheck = function(propText){
     return '(typeof '+propText+' === "undefined" ? "" : '+propText+')';
@@ -667,8 +676,11 @@ var parser = function(expression){
     
 */
 var parseDeps = function(expression, matchList, matchCallback){
+    //TODO cache
     if(!matchList && !matchCallback){return;}
+    expression = getExpressionPart(expression).expression;
     var reg = /(?=\b|\.)(?!\'|\")([\w|\.]+)(?!\'|\")\b/g, expressionBody;
+    //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
     expressionBody = expression.replace(reg, function(text, match){
         if(isNaN(match)){
             var dep = matchCallback ? matchCallback(match) : match;
@@ -679,29 +691,85 @@ var parseDeps = function(expression, matchList, matchCallback){
     });
     return expressionBody;
 }
-
-//################################################################################################################
-var expression = function(expressionText, scope, vm){
-    if(typeof expressionText !== 'string' || !expressionText.trim() || expressionText[0] === '#'){return '';}
-    //{{expression | filter}}
+var getExpressionPart = function(expressionText){
+    //TODO cache
     var part = expressionText.split(/\|{1,1}/),
         exp = part.shift(),
-        filterArgs = /^\s*([\w]+)\(([\w\s\,]+)\)/.exec(part.join(''));
+        filterArgs = /^\s*([\w\-]+)(?:\((.+)\))?/.exec(part.join('|'));
+    return {
+        expression : exp.trim(),
+        filterName : filterArgs && filterArgs[1].trim(),
+        filterArgs : filterArgs && filterArgs[2] && filterArgs[2].split(filterArgsSplitMark)
+    }
+}
 
-    var rs = getValue(exp, scope, vm);
-    if(filterArgs && (filterArgs[1] in filter)){
-        return filter[filterArgs[1]].call(null, [rs].concat(filterArgs[2].split(',')));
+//################################################################################################################
+var expression = function(expressionText, scope, vm, extra){
+    if(typeof expressionText !== 'string' || !expressionText.trim() || expressionText[0] === '#'){return '';}
+    //{{expression | filter}}
+    var execData = getExpressionPart(expressionText);
+    extra = extra || {};
+    extra.value = scope;
+
+    var rs = getValue(execData.expression, scope, vm, extra);
+    if(execData.filterName && filter.hasOwnProperty(execData.filterName)){
+        try{
+            rs = filter[execData.filterName].apply(scope, [rs, extra].concat(execData.filterArgs));
+        }catch(e){
+            log('DataBind.expression', 'filter:' + execData.filterName + ' error, args: "' + execData.filterArgs + '"', e);
+        }
     }
     return rs;
 }
+//################################################################################################################
 DataBind.expression = expression;
 DataBind.expression.parseDeps = parseDeps;
-DataBind.expression.parserCache = parserCache;
+DataBind.expression.register = Filter.register;
 
+DataBind.expression.parserCache = parserCache;
+//################################################################################################################
 module.exports = expression;
 
 
-},{"./DataBind":2,"./kit":8}],5:[function(require,module,exports){
+},{"./DataBind":2,"./Filter":5,"./kit":9}],5:[function(require,module,exports){
+var filter = {
+    /*
+        a,b,c | map({a:1,b:2,c:3};,) => 1,2,3
+    */
+    'map' : function(rs, extra, json, multiMark){
+        var map = JSON.parse(json);
+        if(!multiMark){
+            rs = [rs];
+        }
+        var rsGroup = rs.split(multiMark);
+        return rsGroup.map(function(rs){
+            return map[rs] === undefined ? '' : map[rs];
+        }).join(multiMark);
+    },
+    /*
+        
+    */
+    'text-overflow' : function(rs, extra, num, holder){
+        num = num || 16;
+        holder = holder || '...';
+        if(rs && rs.toString().length > num){
+            rs = rs.slice(0, num) + holder;
+        }
+        return rs;
+    },
+
+    'date' : function(rs, extra, num, holder){
+
+    }
+};
+
+module.exports = {
+    list : filter,
+    register : function(name, func){
+        filter[name] = func;
+    }
+}
+},{}],6:[function(require,module,exports){
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
@@ -796,16 +864,27 @@ var merge = $.merge;
 var unique = $.unique;
 var Accessor = require('./Accessor');
 
-},{"./Accessor":1,"./kit":8}],6:[function(require,module,exports){
+},{"./Accessor":1,"./kit":9}],7:[function(require,module,exports){
+var $ = require('./kit');
 var config = {
-    'mode' : 0,
-    'propagation' : true,
-    'propagationType' : ['change'],
-    'initDOM' : true
+
+    'debug' : 1
+
+    ,'mode' : 0
+    ,'propagation' : true
+    ,'propagationType' : ['change']
+    ,'initDOM' : true //DOM load的扫描
+
+    ,set : function(cfg){
+        $.merge(config, cfg, true);
+    }
 };
 
+if('_DataBindConfig' in window){
+    config.set(config, window._DataBindConfig);
+}
 module.exports = config;
-},{}],7:[function(require,module,exports){
+},{"./kit":9}],8:[function(require,module,exports){
 
 var name = 'DataBind';
 if(name in window){return;}
@@ -819,7 +898,7 @@ new Accessor('', DataBind.root);
 require('./DomExtend');
 window[name] = DataBind;
 
-},{"./Accessor":1,"./DataBind":2,"./DomExtend":3}],8:[function(require,module,exports){
+},{"./Accessor":1,"./DataBind":2,"./DomExtend":3}],9:[function(require,module,exports){
 var $ = {};
 // require('./jquery.hammer.min');
 
@@ -854,8 +933,8 @@ $.log = function(part, info, e){
                 e == 'info' ? 'info' :
                 'log';
     var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
-    $.debug && $.log.list.push(msg);
-    $.debug && console && console[type](msg);
+    config.debug && $.log.list.push(msg);
+    config.debug && console && console[type](msg);
     return msg;
 };
 $.log.list = [];
@@ -928,5 +1007,7 @@ $.evt = function(element, data){
         }
     }
 }
+
 module.exports = $;
-},{}]},{},[7]);
+var config = require('./config');
+},{"./config":7}]},{},[8]);

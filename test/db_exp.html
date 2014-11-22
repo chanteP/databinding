@@ -18,13 +18,14 @@
         <script src="../build/databind.js"></script>
     </head>
     <body>
-        {{<input id="expr" value=".length">}}
+        {{<input id="expr" value="length">}}
         <div><p>bind<input id="bindAcc" value="a.b.c.arr" /></p></div>
         <div><p id="rs"></p></div>
         <pre>
         <script style="display:block;">
         DataBind.config({
-            mode : 1
+            mode : 1,
+            debug : false
         })
         var demo = new DataBind('a.b.c', {
             data : {
@@ -47,10 +48,9 @@
         var exp = DataBind.expression;
         var vm = DataBind.root;
 
-        expr.onkeyup = function(){
+        (expr.onkeyup = function(){
             rs.innerHTML = exp(this.value, DataBind.get(bindAcc.value), vm);
-        }
-        expr.onkeyup();
+        })();
         // exp('abc + eee', 'a.b.c', vm);
 
         </script>

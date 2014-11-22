@@ -32,8 +32,8 @@ $.log = function(part, info, e){
                 e == 'info' ? 'info' :
                 'log';
     var msg = '[' + part + ']@ ' + Date.now() + ' : ' + info + (type == 'error' ? '('+(e.stack || e.message)+')' : '');
-    $.debug && $.log.list.push(msg);
-    $.debug && console && console[type](msg);
+    config.debug && $.log.list.push(msg);
+    config.debug && console && console[type](msg);
     return msg;
 };
 $.log.list = [];
@@ -106,4 +106,6 @@ $.evt = function(element, data){
         }
     }
 }
+
 module.exports = $;
+var config = require('./config');
