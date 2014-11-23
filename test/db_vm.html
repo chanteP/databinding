@@ -28,6 +28,12 @@
                 <span style="display:{{name['length'] >= 12 ? 'block' : 'none'}};color:#c00;">名字哪有那么长的啊</span>
             </div>
             <div>
+                <select value="{{select}}" vm-model="select">
+                    <option vm-list="form.table" value="{{id}}">{{name}}</option>
+                </select>
+                <span>{{select}}</span>
+            </div>
+            <div>
                 <label>性别</label>
                 <label><input type="radio" name="sex" vm-model="sex" value="male" checked="{{sex}}">男</label>
                 <label><input type="radio" name="sex" vm-model="sex" value="female" checked="{{sex}}">女</label>
@@ -81,6 +87,7 @@
                 sex : 'female',
                 job : 's',
                 intro : '123123123cfd',
+                select : '',
                 table : [
                     newL(),
                     newL(),

@@ -14,13 +14,14 @@ var marker = {
 var indexPreg = /\[(\d+)\]$/;
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
+var scanQueue = [];
 
 var vm = DataBind.root,
     set = DataBind.set,
     get = DataBind.get;
 
 var observe = DataBind.observe,
-    destroy = DataBind.unobserve,
+    unobserve = DataBind.unobserve,
     fire = DataBind.fire;
 //################################################################################################################
 var evt = $.evt,
@@ -55,6 +56,10 @@ var main = {
         解析节点
     */
 	'scan' : function(node){
+        if(checkProp){
+            scanQueue.push(node);
+            return;
+        }
 		checkProp = {};
 		main.parseNode(node || document.body);
         var value;
@@ -66,6 +71,9 @@ var main = {
             });
         }
         checkProp = null;
+        if(scanQueue.length){
+            main.scan(scanQueue.shift());
+        }
 	},
     'parseNode' : function(node, scope){
         //elementNode
@@ -272,7 +280,7 @@ var bind = {
         func = function(v, ov, e){
             //TODO if(!node.parentNode){}
             if(e && !contains(document.documentElement, node)){
-                destroy(e.nameNS, func, checkType);
+                unobserve(e.nameNS, func, checkType);
                 return;
             }
             node.textContent = parse.text(textContent, context);
