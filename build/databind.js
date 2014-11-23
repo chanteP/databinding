@@ -906,7 +906,9 @@ var config = {
 
     'debug' : 1
 
+    ,'name' : 'DataBind'
     ,'mode' : 0
+
     ,'propagation' : true
     ,'propagationType' : ['change']
     ,'initDOM' : true //DOM load的扫描
@@ -922,13 +924,13 @@ if('_DataBindConfig' in window){
 module.exports = config;
 },{"./kit":9}],8:[function(require,module,exports){
 
-var name = 'DataBind';
+var name = require('./config').name;
 if(name in window){return;}
-window[name] = require('./DataBind').init();;
+window[name] = require('./DataBind').init();
 // require('./Expression');
 require('./DomExtend');
 
-},{"./DataBind":2,"./DomExtend":3}],9:[function(require,module,exports){
+},{"./DataBind":2,"./DomExtend":3,"./config":7}],9:[function(require,module,exports){
 var $ = {};
 // require('./jquery.hammer.min');
 

@@ -3,7 +3,9 @@ var config = {
 
     'debug' : 1
 
+    ,'name' : 'DataBind'
     ,'mode' : 0
+
     ,'propagation' : true
     ,'propagationType' : ['change']
     ,'initDOM' : true //DOM load的扫描
