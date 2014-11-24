@@ -219,7 +219,8 @@ var bind = {
 	},
 	'list' : function(node, prop){
 		var template = node.outerHTML;
-        var listMark = document.createComment('list for ' + prop),
+        var context = parse.context(node);
+        var listMark = document.createComment('list for ' + (context ? context + prop : prop)),
             listNodeCollection = [];
         node.parentNode.replaceChild(listMark, node);
         main.addScanFunc(prop, function(v, ov, e){
