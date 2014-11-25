@@ -58,7 +58,7 @@
         <button id="tableP">+</button>
         <button id="tableM">-</button>
         <table vm-bind="form">
-            <tr vm-list="form.table">
+            <tr vm-list="table">
                 <td>{{.index}}</td>
                 <td>{{name}}</td>
                 <td>{{id}}</td>
@@ -117,8 +117,11 @@
             }
 
             console.log(formData)
-
+            try{
+            DataBind.scan()
+        }catch(e){alert(e)
             // tableP.onclick();tableP.onclick();
+        }
 
         </script>
     </body>

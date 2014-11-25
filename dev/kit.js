@@ -63,10 +63,10 @@ $.contains  = function(root, el){
     return !!(root.compareDocumentPosition(el) & 16);
 }
 $.create = function(str){
-    if(str[0] === '<'){
-        var template = document.createElement('template');
+    if(str.slice(0, 1) === '<'){
+        var template = document.createElement(str.slice(0, 3) === '<tr' ? 'tbody' : 'template');
         template.innerHTML = str;
-        return template.content.firstChild;
+        return template.content ? template.content.firstChild : template.firstElementChild;
     }
     else{
         return document.createElement(str);
