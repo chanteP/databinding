@@ -1,3 +1,21 @@
+//################################################################################################
+var ArrayExtend = {}, 
+    ArrayExtendProto = Array.prototype, 
+    ArrayExtendObserveMethod = 'arrayExtOb',
+    ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
+Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
+    writable : true,
+    enumerable : false
+});
+ArrayExtendMethod.forEach(function(methodName){
+    ArrayExtend[methodName] = function(){
+        var args = [].map.call(arguments, function(arg){return arg});
+        ArrayExtendProto[methodName].apply(this, args);
+        this[ArrayExtendObserveMethod]();
+    }
+});
+ArrayExtend.__proto__ = ArrayExtendProto;
+//################################################################################################
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
         if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
@@ -74,13 +92,21 @@ Accessor.prototype.set = function(value, dirty, force){
     this.dirty = false;
 
     if(value instanceof Array){
+        var arrayChangeLock = false;
         //TODO 好挫！！！
-        var arrayChangeLock;
-        Object.observe(value, function(changes){
-            if(arrayChangeLock){return;}
-            arrayChangeLock = true;
-            self.set(value, self.dirty, true);
-        });
+        if('observe' in Object){
+            Object.observe(value, function(changes){
+                if(arrayChangeLock){return;}
+                arrayChangeLock = true;
+                self.set(value, self.dirty, true);
+            });
+        }
+        else{
+            value.__proto__ = ArrayExtend;
+            value[ArrayExtendObserveMethod] = function(){
+                self.set(value, self.dirty, true);
+            }
+        }
     }
     //TODO 其实楼上也要！mode才绑定，等实现set数组元素再说...
     else if(!config.mode && value && value.__proto__ === Object.prototype){
@@ -118,6 +144,7 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
+//################################################################################################
 module.exports = Accessor;
 var config = require('./config');
 var listener = require('./Observer');

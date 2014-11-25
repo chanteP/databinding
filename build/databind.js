@@ -1,4 +1,22 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+//################################################################################################
+var ArrayExtend = {}, 
+    ArrayExtendProto = Array.prototype, 
+    ArrayExtendObserveMethod = 'arrayExtOb',
+    ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
+Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
+    writable : true,
+    enumerable : false
+});
+ArrayExtendMethod.forEach(function(methodName){
+    ArrayExtend[methodName] = function(){
+        var args = [].map.call(arguments, function(arg){return arg});
+        ArrayExtendProto[methodName].apply(this, args);
+        this[ArrayExtendObserveMethod]();
+    }
+});
+ArrayExtend.__proto__ = ArrayExtendProto;
+//################################################################################################
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
         if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
@@ -75,13 +93,21 @@ Accessor.prototype.set = function(value, dirty, force){
     this.dirty = false;
 
     if(value instanceof Array){
+        var arrayChangeLock = false;
         //TODO 好挫！！！
-        var arrayChangeLock;
-        Object.observe(value, function(changes){
-            if(arrayChangeLock){return;}
-            arrayChangeLock = true;
-            self.set(value, self.dirty, true);
-        });
+        if('observe' in Object){
+            Object.observe(value, function(changes){
+                if(arrayChangeLock){return;}
+                arrayChangeLock = true;
+                self.set(value, self.dirty, true);
+            });
+        }
+        else{
+            value.__proto__ = ArrayExtend;
+            value[ArrayExtendObserveMethod] = function(){
+                self.set(value, self.dirty, true);
+            }
+        }
     }
     //TODO 其实楼上也要！mode才绑定，等实现set数组元素再说...
     else if(!config.mode && value && value.__proto__ === Object.prototype){
@@ -119,6 +145,7 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
+//################################################################################################
 module.exports = Accessor;
 var config = require('./config');
 var listener = require('./Observer');
@@ -564,9 +591,10 @@ var bind = {
 		set(model, value);
 	},
 	'list' : function(node, prop){
-		var template = node.outerHTML;
+        var template = node.outerHTML;
         var context = parse.context(node);
-        var listMark = document.createComment('list for ' + (context ? context + prop : prop)),
+        prop = (context ? context + '.' + prop : prop);
+        var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
         node.parentNode.replaceChild(listMark, node);
         main.addScanFunc(prop, function(v, ov, e){
@@ -912,7 +940,7 @@ var config = {
 
     ,'propagation' : true
     ,'propagationType' : ['change']
-    ,'initDOM' : true //DOM load的扫描
+    ,'initDOM' : false //DOM load的扫描
 
     ,set : function(cfg){
         $.merge(config, cfg, true);

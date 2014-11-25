@@ -8,7 +8,7 @@ var config = {
 
     ,'propagation' : true
     ,'propagationType' : ['change']
-    ,'initDOM' : true //DOM load的扫描
+    ,'initDOM' : false //DOM load的扫描
 
     ,set : function(cfg){
         $.merge(config, cfg, true);
