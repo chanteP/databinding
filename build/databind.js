@@ -378,11 +378,12 @@ var config = require('./config');
 var $ = require('./kit');
 
 var expPreg = /{{(.*?)}}/m;
-var prefix = 'vm-';
+var prefix = config.DOMPrefix || 'vm-';
 var marker = {
 	'model' : prefix + 'model',
 	'list' : prefix + 'list',
-	'bind' : prefix + 'bind'
+	'bind' : prefix + 'bind',
+    'toggle' : prefix + 'toggle'
 }
 var indexPreg = /\[(\d+)\]$/;
 var nodeFuncKey = 'bindObserver';
@@ -652,17 +653,25 @@ var bind = {
     //textNode
     'text' : function(node, textContent){
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
+        var exchangeNode = node;
         func = function(v, ov, e){
-            //TODO if(!node.parentNode){}
             if(e && !contains(document.documentElement, node)){
                 unobserve(e.nameNS, func, checkType);
                 return;
             }
+            if(v instanceof Node){exchangeNode = bind.element(exchangeNode, v);}
+            else if(ov instanceof Node){exchangeNode = bind.element(exchangeNode, node);}
             node.textContent = parse.text(textContent, context);
         }
         deps.forEach(function(prop){
             main.addScanFunc(prop, func);
         });
+    },
+    'element' : function(oldElement, newElement){
+        if(!oldElement.parentNode){return oldElement;}
+        oldElement.parentNode.replaceChild(newElement, oldElement);
+        DataBind.scan(newElement);
+        return newElement;
     }
 }
 //################################################################################################################
@@ -822,9 +831,11 @@ var filter = {
         }
         return rs;
     },
-
-    'date' : function(rs, extra, num, holder){
-
+    /*
+        display:none | ''
+    */
+    'display' : function(rs, extra, displayType){
+        return 'display:' + (+rs ? displayType || '\"\";' : 'none;');
     }
 };
 
@@ -938,6 +949,7 @@ var config = {
     ,'name' : 'DataBind'
     ,'mode' : 0
 
+    ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change']
     ,'initDOM' : false //DOM load的扫描

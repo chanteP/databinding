@@ -6,6 +6,7 @@ var config = {
     ,'name' : 'DataBind'
     ,'mode' : 0
 
+    ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change']
     ,'initDOM' : false //DOM load的扫描
