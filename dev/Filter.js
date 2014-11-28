@@ -23,9 +23,11 @@ var filter = {
         }
         return rs;
     },
-
-    'date' : function(rs, extra, num, holder){
-
+    /*
+        display:none | ''
+    */
+    'display' : function(rs, extra, displayType){
+        return 'display:' + (+rs ? displayType || '\"\";' : 'none;');
     }
 };
 
