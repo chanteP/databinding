@@ -1,4 +1,5 @@
 /*
+    dom绑定用外挂包
     TODO list
     -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
     -evt跟zepto分离啊AA啊
@@ -6,6 +7,7 @@
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
 var config = require('./config');
+require('./Zepto.min');
 
 var $ = require('./kit');
 
@@ -144,6 +146,10 @@ var check = {
     'list' : function(node){
         var listProp = node.getAttribute(marker.list);
         if(listProp === null){return;}
+        //TODO WTF?
+        if(listProp.indexOf(' in ') >= 0){
+            listProp = listProp.split(' in ')[1];
+        }
         node.removeAttribute(marker.list);
         bind.list(node, listProp);
         return true;
