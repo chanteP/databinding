@@ -9,7 +9,7 @@ var config = {
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change']
-    ,'initDOM' : false //DOM load的扫描
+    ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
     ,set : function(cfg){
         $.merge(config, cfg, true);

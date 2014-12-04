@@ -105,6 +105,9 @@ var expression = function(expressionText, scope, vm, extra){
             log('DataBind.expression', 'filter:' + execData.filterName + ' error, args: "' + execData.filterArgs + '"', e);
         }
     }
+    if(rs === undefined){
+        rs = '';
+    }
     return rs;
 }
 //################################################################################################################

@@ -371,6 +371,11 @@ if('defineProperty' in Object){
 }
 module.exports = DataBind;
 },{"./Accessor":1,"./Observer":6,"./config":7,"./kit":9}],3:[function(require,module,exports){
+/*
+    TODO list
+    -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
+    -evt跟zepto分离啊AA啊
+*/
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
 var config = require('./config');
@@ -380,9 +385,10 @@ var $ = require('./kit');
 var expPreg = /{{(.*?)}}/m;
 var prefix = config.DOMPrefix || 'vm-';
 var marker = {
-	'model' : prefix + 'model',
-	'list' : prefix + 'list',
-	'bind' : prefix + 'bind',
+    'model' : prefix + 'model',
+    'list' : prefix + 'list',
+    'bind' : prefix + 'bind',
+    'escape' : prefix + 'escape',
     'toggle' : prefix + 'toggle'
 }
 var indexPreg = /\[(\d+)\]$/;
@@ -397,6 +403,10 @@ var vm = DataBind.root,
 var observe = DataBind.observe,
     unobserve = DataBind.unobserve,
     fire = DataBind.fire;
+
+var parseOnlyWhileScan = false;
+
+
 //################################################################################################################
 var evt = $.evt,
     find = $.find,
@@ -411,54 +421,67 @@ var main = {
         绑定解析model获取事件的节点
     */
     'bindContent' : function(node){
-		var evtBody = node || document.body;
-		evt(evtBody)
-			//radio checkbox etc...
-			.on('change', [
-					'input['+marker.model+']',
-					'select['+marker.model+']'
-				].join(','), 
-				bind.model)
-			//text etc...
-			.on('input', [
-					'input['+marker.model+']',
-					'textarea['+marker.model+']'
-				].join(','),
-				bind.model);
-	},
+        var evtBody = node || document.body;
+        evt(evtBody)
+            //TODO 绑定太简陋?
+            //radio checkbox etc...
+            .on('change', [
+                    'input['+marker.model+']',
+                    'select['+marker.model+']'
+                ].join(','), 
+                bind.model)
+            //text etc...
+            .on('input', [
+                    'input['+marker.model+']',
+                    'textarea['+marker.model+']'
+                ].join(','),
+                bind.model);
+    },
     /*
         解析节点
     */
-	'scan' : function(node){
+    'scan' : function(node, parseOnly){
+        if(parseOnly){
+            parseOnlyWhileScan = parseOnly;
+        }
         if(checkProp){
             scanQueue.push(node);
             return;
         }
-		checkProp = {};
-		main.parseNode(node || document.body);
+        checkProp = {};
+        main.parseNode(node || document.body);
         var value;
-        for(var key in checkProp){
-            value = get(key);
-            checkProp[key].forEach(function(func){
+        for(var prop in checkProp){
+            value = get(prop);
+            checkProp[prop].forEach(function(func){
                 //TODO apply?
                 func(value, value);
+                parseOnlyWhileScan || observe(prop, func, checkType);
             });
+
         }
         checkProp = null;
         if(scanQueue.length){
             main.scan(scanQueue.shift());
         }
-	},
+        parseOnlyWhileScan = false;
+    },
+    /*
+        TODO 堆scope
+    */
     'parseNode' : function(node, scope){
         //elementNode
         if(node.nodeType === 1){
-        	var html = node.outerHTML;
+            var html = node.outerHTML;
             //节点包含{{}}
             if(!expPreg.test(html)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
             //解析attr
             check.attr(node, html);
+
+            if(node.getAttribute(marker.escape)){return;}
+
             //解析children
             [].forEach.call(node.childNodes, main.parseNode);
         }
@@ -474,7 +497,6 @@ var main = {
         if(!checkProp[prop]){
             checkProp[prop] = [];
         }
-        observe(prop, func, checkType);
         checkProp[prop].push(func);
     }
 };
@@ -484,9 +506,9 @@ var check = {
     */
     'attr' : function(node, html){
         [].forEach.call(node.attributes, function(attributeNode){
-        	if(expPreg.test(attributeNode.value)){
-            	bind.attr(node, attributeNode.value, attributeNode.name);
-        	}
+            if(expPreg.test(attributeNode.value)){
+                bind.attr(node, attributeNode.value, attributeNode.name);
+            }
         });
     },
     /*
@@ -550,6 +572,9 @@ var parse = {
         String 获取节点绑定的context scope
     */
     'context' : function(node){
+        if(node[marker.bind]){
+            return node[marker.bind];
+        }
         if(node.getAttribute && node.getAttribute(marker.bind)){
             return node.getAttribute(marker.bind);
         }
@@ -557,43 +582,46 @@ var parse = {
     }
 };
 var bind = {
-	'model' : function(e){
-		var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
-		var model = this.getAttribute(marker.model), context = parse.context(this);
-		var value = '', form = this.form || document.body, rs;
+    'model' : function(e){
+        var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
+        var model = this.getAttribute(marker.model), context = parse.context(this);
+        var value = '', form = this.form || document.body, rs;
+        this[marker.bind] = context;
 
         model = DataBind.parseProp(model, context);
         if(!DataBind.check(model)){
             new DataBind(model);
         }
 
-		if(name && tagName === 'input'){
-			switch (type){
-				case 'checkbox' : 
-					rs = findAll('[name="'+name+'"]:checked', form);
-					value = [];
-					rs && [].forEach.call(rs, function(el){
-						value.push(el.value);
-					});
-					value = value.join(',');
-					break;
-				case 'radio' : 
-					rs = find('[name="'+name+'"]:checked', form);
-					value = rs ? rs.value : '';
-					break;
-				default : 
-					value = this.value;
-					break;
-			}
-		}
-		else{
-			value = this.value;
-		}
-		set(model, value);
-	},
-	'list' : function(node, prop){
+        if(name && tagName === 'input'){
+            switch (type){
+                case 'checkbox' : 
+                    rs = findAll('[name="'+name+'"]:checked', form);
+                    value = [];
+                    rs && [].forEach.call(rs, function(el){
+                        value.push(el.value);
+                    });
+                    value = value.join(',');
+                    break;
+                case 'radio' : 
+                    rs = find('[name="'+name+'"]:checked', form);
+                    value = rs ? rs.value : '';
+                    break;
+                default : 
+                    value = this.value;
+                    break;
+            }
+        }
+        else{
+            value = this.value;
+        }
+        set(model, value);
+    },
+    'list' : function(node, prop){
         var template = node.outerHTML;
         var context = parse.context(node);
+        node[marker.bind] = context;
+
         prop = (context ? context + '.' + prop : prop);
         var listMark = document.createComment('list for ' + prop),
             listNodeCollection = [];
@@ -603,49 +631,59 @@ var bind = {
             var list = get(prop);
             if(!(list instanceof Array)){return;}
             var content = listMark.parentNode;
-
+            //TODO 增强array功能后这里就不用全部删了再加了
             [].forEach.call(listNodeCollection, function(element){
                 remove(element);
             });
             list.forEach(function(dataElement, index){
                 var element = create(template);
                 // var scope = Object.create(dataElement, {index:{value:index}});
-                element.setAttribute(marker.bind, prop + '['+index+']');
+                // element.setAttribute(marker.bind, prop + '['+index+']');
+                element[marker.bind] = prop + '['+index+']';
                 content.insertBefore(element, listMark);
                 listNodeCollection.push(element);
                 main.scan(element);
             });
         });
-	},
+    },
     //node attribute
     'attr' : function(node, attrText, attrName){
         var context = parse.context(node), deps = parse.deps(attrText, context), func;
-    	switch (attrName){
-    		case 'checked' : 
-        		var checkValue = node.value;
-        		func = node.type === 'checkbox' ? 
-        		function(value){
+        node[marker.bind] = context;
+
+        switch (attrName){
+            case 'checked' : 
+                var checkValue = node.value;
+                func = node.type === 'checkbox' ? 
+                function(value){
             //TODO if(!node.parentNode){}
-        			node.checked = (value || '').split(',').indexOf(checkValue) >= 0;
-        		} : 
-        		function(value){
+                    node.checked = (value || '').split(',').indexOf(checkValue) >= 0;
+                } : 
+                function(value){
             //TODO if(!node.parentNode){}
-        			node.checked = value === checkValue;
-        		};
+                    node.checked = value === checkValue;
+                };
                 break;
-        	case 'value' : 
+            case 'selected' : 
+                var checkValue = node.value;
+                func = function(value){
+            //TODO if(!node.parentNode){}
+                    node.selected = value === checkValue;
+                };
+                break;
+            case 'value' : 
                 func = function(){
             //TODO if(!node.parentNode){}
                     node.value = parse.text(attrText, context);
                 }
                 break;
-        	default : 
+            default : 
                 func = function(){
             //TODO if(!node.parentNode){}
                     node.setAttribute(attrName, parse.text(attrText, context));
                 }
                 break;
-    	}
+        }
         deps.forEach(function(prop){
             main.addScanFunc(prop, func);
         });
@@ -653,6 +691,7 @@ var bind = {
     //textNode
     'text' : function(node, textContent){
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
+        node[marker.bind] = context;
         var exchangeNode = node;
         func = function(v, ov, e){
             if(e && !contains(document.documentElement, node)){
@@ -678,9 +717,10 @@ var bind = {
 DataBind.scan = main.scan;
 DataBind.bindContent = main.bindContent;
 //################################################################################################################
-config.initDOM && window.document && window.document.addEventListener('DOMContentLoaded', function(){
+window.document.addEventListener('DOMContentLoaded', function(){
+    if(!config.initDOM){return;}
     main.bindContent(document.body);
-    main.scan(document.documentElement);
+    if(config.initDOM !== 1) main.scan(document.documentElement);
 });
 
 
@@ -792,6 +832,9 @@ var expression = function(expressionText, scope, vm, extra){
         }catch(e){
             log('DataBind.expression', 'filter:' + execData.filterName + ' error, args: "' + execData.filterArgs + '"', e);
         }
+    }
+    if(rs === undefined){
+        rs = '';
     }
     return rs;
 }
@@ -952,7 +995,7 @@ var config = {
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change']
-    ,'initDOM' : false //DOM load的扫描
+    ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
     ,set : function(cfg){
         $.merge(config, cfg, true);
@@ -964,7 +1007,9 @@ if('_DataBindConfig' in window){
 }
 module.exports = config;
 },{"./kit":9}],8:[function(require,module,exports){
-
+/*!
+    Σヾ(ﾟДﾟ)ﾉ
+*/
 var name = require('./config').name;
 if(name in window){return;}
 window[name] = require('./DataBind').init();
