@@ -17,6 +17,6 @@ var config = {
 };
 
 if('_DataBindConfig' in window){
-    config.set(config, window._DataBindConfig);
+    config.set(window._DataBindConfig);
 }
 module.exports = config;
