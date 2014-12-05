@@ -1,8 +1,8 @@
 {
     "name": "np-databind",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "测试用双向绑定core，单向用也大丈夫",
-    "keywords" : "双向绑定",
+    "keywords" : "two-way data binding",
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1"

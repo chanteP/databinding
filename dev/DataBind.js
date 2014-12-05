@@ -114,7 +114,7 @@ var main = {
 
 //################################################################################################################
 var expApi = {}, expApiList;
-var DataBind = function(nameNS, obj, cfg){
+var DataBind = function(nameNS, obj){
     var ns = nameNS.split('.'), root, cur = obj;
     if(nameNS === ''){
         ns.length = 0;

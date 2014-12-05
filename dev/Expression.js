@@ -1,4 +1,5 @@
 /*
+    表达式解析外挂包
     expression('a.b.c', {a:xxx}, vm)
     整个文件跟{{}}没关系啦
 */
@@ -28,7 +29,7 @@ var parserCache = {};
 */
 var parser = function(expression){
     if(typeof expression !== 'string'){
-        log('DataBind.expression', 'expression \"' + expression + '\" is not function');
+        log('DataBind.expression', 'expression \"' + expression + '\" is not a function');
         return emptyFunc;
     }
     if(parserCache[expression]){return parserCache[expression];}
@@ -104,6 +105,9 @@ var expression = function(expressionText, scope, vm, extra){
         }catch(e){
             log('DataBind.expression', 'filter:' + execData.filterName + ' error, args: "' + execData.filterArgs + '"', e);
         }
+    }
+    if(rs === undefined){
+        rs = '';
     }
     return rs;
 }

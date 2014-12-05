@@ -1,4 +1,6 @@
 var $ = {};
+module.exports = $;
+var config = require('./config');
 // require('./jquery.hammer.min');
 
 $.objMerger = function(type, args){
@@ -45,9 +47,6 @@ $.isEmptyObject = function(obj){
     }
     return true;
 }
-
-
-
 
 $.id        = function(id){
     return document.getElementById(id);
@@ -110,6 +109,3 @@ $.evt = function(element, data){
         }
     }
 }
-
-module.exports = $;
-var config = require('./config');

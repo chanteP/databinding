@@ -27,7 +27,7 @@ var filter = {
         display:none | ''
     */
     'display' : function(rs, extra, displayType){
-        return 'display:' + (+rs ? displayType || '\"\";' : 'none;');
+        return 'display:' + ((+rs && rs !== 'false') ? displayType || '\"\";' : 'none;');
     }
 };
 

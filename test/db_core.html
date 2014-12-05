@@ -13,9 +13,8 @@
         
         <!--        <link rel="shortcut icon" href="/favicon.ico" /> -->
         <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
-        <script src="./zepto.min.js"></script>
-        <script src="./jquery.hammer.min.js"></script>
         <script src="../build/databind.js"></script>
+        <!-- // <script src="./jquery.hammer.min.js"></script> -->
     </head>
     <body>
         <div id="wrapper">
@@ -53,7 +52,7 @@
         */
         DataBind.config({mode:mode});
         var vm = DataBind.root;
-        var demo = new DataBind('a.b.c', {
+        var desc = {
             data : {
                 $value:123,
                 $get : function(vm){
@@ -65,10 +64,8 @@
             }, 
             d : 222,
             e : 13
-        }, {
-            propagation : true,
-            mode : mode
-        });
+        };
+        var demo = new DataBind('a.b.c', desc);
         var pro = new DataBind('', {
             s : {
                 $value : 231,

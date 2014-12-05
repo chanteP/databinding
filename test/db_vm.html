@@ -13,9 +13,8 @@
         
         <!--        <link rel="shortcut icon" href="/favicon.ico" /> -->
         <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
-        <script src="./zepto.min.js"></script>
-        <script src="./jquery.hammer.min.js"></script>
         <script src="../build/databind.js"></script>
+        <script src="./jquery.hammer.min.js"></script>
     </head>
     <body>
         <div id="wrapper">
@@ -29,7 +28,7 @@
             </div>
             <div>
                 <select value="{{select}}" vm-model="select">
-                    <option vm-list="form.table" value="{{id}}">{{name}}</option>
+                    <option vm-bind="form" vm-list="table" value="{{id}}" selected="{{id}}">{{name}}</option>
                 </select>
                 <span>{{select}}</span>
             </div>
@@ -67,7 +66,12 @@
         <hr >
         <div id="formData"></div>
         <script type="text/javascript">
-            DataBind.config({mode:0});
+            DataBind.config({
+                mode:0,
+                initDOM:2,
+
+                DOMPrefix:'vm-'
+            })
             var vm = DataBind.root;
             var exp = DataBind.expression;
 
@@ -115,13 +119,8 @@
             tableM.onclick = function(){
                 formData.table.pop();
             }
-
+            // DataBind.scan(document.documentElement, 1)
             console.log(formData)
-            try{
-            DataBind.scan(document.documentElement)
-        }catch(e){alert(e)
-            // tableP.onclick();tableP.onclick();
-        }
 
         </script>
     </body>

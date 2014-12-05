@@ -1,4 +1,3 @@
-//################################################################################################
 var ArrayExtend = {}, 
     ArrayExtendProto = Array.prototype, 
     ArrayExtendObserveMethod = 'arrayExtOb',
