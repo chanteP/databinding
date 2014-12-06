@@ -1,19 +1,3 @@
-var ArrayExtend = {}, 
-    ArrayExtendProto = Array.prototype, 
-    ArrayExtendObserveMethod = 'arrayExtOb',
-    ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
-Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
-    writable : true,
-    enumerable : false
-});
-ArrayExtendMethod.forEach(function(methodName){
-    ArrayExtend[methodName] = function(){
-        var args = [].map.call(arguments, function(arg){return arg});
-        ArrayExtendProto[methodName].apply(this, args);
-        this[ArrayExtendObserveMethod]();
-    }
-});
-ArrayExtend.__proto__ = ArrayExtendProto;
 //################################################################################################
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
@@ -102,7 +86,7 @@ Accessor.prototype.set = function(value, dirty, force){
         }
         else{
             value.__proto__ = ArrayExtend;
-            value[ArrayExtendObserveMethod] = function(){
+            value[ArrayExtend.bindMethodName] = function(){
                 self.set(value, self.dirty, true);
             }
         }
@@ -147,3 +131,4 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
 module.exports = Accessor;
 var config = require('./config');
 var listener = require('./Observer');
+var ArrayExtend = require('./ArrayExtend');

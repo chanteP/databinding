@@ -1,20 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var ArrayExtend = {}, 
-    ArrayExtendProto = Array.prototype, 
-    ArrayExtendObserveMethod = 'arrayExtOb',
-    ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
-Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
-    writable : true,
-    enumerable : false
-});
-ArrayExtendMethod.forEach(function(methodName){
-    ArrayExtend[methodName] = function(){
-        var args = [].map.call(arguments, function(arg){return arg});
-        ArrayExtendProto[methodName].apply(this, args);
-        this[ArrayExtendObserveMethod]();
-    }
-});
-ArrayExtend.__proto__ = ArrayExtendProto;
 //################################################################################################
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
@@ -103,7 +87,7 @@ Accessor.prototype.set = function(value, dirty, force){
         }
         else{
             value.__proto__ = ArrayExtend;
-            value[ArrayExtendObserveMethod] = function(){
+            value[ArrayExtend.bindMethodName] = function(){
                 self.set(value, self.dirty, true);
             }
         }
@@ -148,7 +132,27 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
 module.exports = Accessor;
 var config = require('./config');
 var listener = require('./Observer');
-},{"./Observer":6,"./config":7}],2:[function(require,module,exports){
+var ArrayExtend = require('./ArrayExtend');
+
+},{"./ArrayExtend":2,"./Observer":7,"./config":8}],2:[function(require,module,exports){
+var ArrayExtend = {}, 
+    ArrayExtendProto = Array.prototype, 
+    ArrayExtendObserveMethod = 'arrayExtOb',
+    ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
+Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
+    writable : true,
+    enumerable : false
+});
+ArrayExtendMethod.forEach(function(methodName){
+    ArrayExtend[methodName] = function(){
+        var args = [].map.call(arguments, function(arg){return arg});
+        ArrayExtendProto[methodName].apply(this, args);
+        this[ArrayExtendObserveMethod]();
+    }
+});
+ArrayExtend.bindMethodName = ArrayExtendObserveMethod;
+ArrayExtend.__proto__ = ArrayExtendProto;
+},{}],3:[function(require,module,exports){
 /*
     mode ? accessor : defineProp
     var db = new DataBind('prop1.prop2', {
@@ -368,7 +372,7 @@ if('defineProperty' in Object){
     }
 }
 module.exports = DataBind;
-},{"./Accessor":1,"./Observer":6,"./config":7,"./kit":9}],3:[function(require,module,exports){
+},{"./Accessor":1,"./Observer":7,"./config":8,"./kit":10}],4:[function(require,module,exports){
 /*
     dom绑定用外挂包
     TODO list
@@ -729,7 +733,7 @@ window.document.addEventListener('DOMContentLoaded', function(){
 
 
 
-},{"./DataBind":2,"./Expression":4,"./config":7,"./kit":9}],4:[function(require,module,exports){
+},{"./DataBind":3,"./Expression":5,"./config":8,"./kit":10}],5:[function(require,module,exports){
 /*
     表达式解析外挂包
     expression('a.b.c', {a:xxx}, vm)
@@ -853,7 +857,7 @@ DataBind.expression.parserCache = parserCache;
 module.exports = expression;
 
 
-},{"./DataBind":2,"./Filter":5,"./kit":9}],5:[function(require,module,exports){
+},{"./DataBind":3,"./Filter":6,"./kit":10}],6:[function(require,module,exports){
 var filter = {
     /*
         a,b,c | map({a:1,b:2,c:3};,) => 1,2,3
@@ -893,7 +897,7 @@ module.exports = {
         filter[name] = func;
     }
 }
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
@@ -988,7 +992,7 @@ var merge = $.merge;
 var unique = $.unique;
 var Accessor = require('./Accessor');
 
-},{"./Accessor":1,"./kit":9}],7:[function(require,module,exports){
+},{"./Accessor":1,"./kit":10}],8:[function(require,module,exports){
 var $ = require('./kit');
 var config = {
 
@@ -1011,7 +1015,7 @@ if('_DataBindConfig' in window){
     config.set(window._DataBindConfig);
 }
 module.exports = config;
-},{"./kit":9}],8:[function(require,module,exports){
+},{"./kit":10}],9:[function(require,module,exports){
 /*!
     Σヾ(ﾟДﾟ)ﾉ
 */
@@ -1021,7 +1025,7 @@ module.exports = window[name] = require('./DataBind').init();
 // require('./Expression');
 require('./DomExtend');
 
-},{"./DataBind":2,"./DomExtend":3,"./config":7}],9:[function(require,module,exports){
+},{"./DataBind":3,"./DomExtend":4,"./config":8}],10:[function(require,module,exports){
 var $ = {};
 module.exports = $;
 var config = require('./config');
@@ -1156,4 +1160,4 @@ $.match = function(node, selector, context){
     return [].indexOf.call(context.querySelectorAll(selector) || [], node) >= 0;
 }
 
-},{"./config":7}]},{},[8]);
+},{"./config":8}]},{},[9]);
