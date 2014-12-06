@@ -7,7 +7,7 @@
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
 var config = require('./config');
-require('./Zepto.min');
+// require('./Zepto.min');
 
 var $ = require('./kit');
 

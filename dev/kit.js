@@ -88,24 +88,46 @@ $.remove    = function(node){
     }
 }
 $.evt = function(element, data){
-    if(!('Zepto' in window)){
-        log('kit.evt', '找不到zepto残念...到93行改事件库或者手动加载？');
-        return;
-    }
-    var obj = typeof data === 'undefined' ?
-        Zepto(element):
-        Zepto(element).hammer(data);
-    var evt = function(type, args){
-        this[type].apply(this, args);
-    }
+    element._eventList = element._eventList || {};
     return {
-        'on' : function(){
-            evt.call(obj, 'on', arguments);
-            return obj;
+        'on' : function(evt, selector, callback, capture){
+            if(!selector){
+                element.addEventListener(evt, callback, capture);
+            }
+            else{
+                var cb = function(e){
+                    var target = e.target;
+                    while(target !== element.parentNode){
+                        if($.match(target, selector, element)){
+                            callback.call(target, e);
+                            return true;
+                        }
+                        target == target.parentNode;
+                    }
+                }
+                element._eventList[selector] = element._eventList[selector] || [];
+                element._eventList[selector].push({
+                    cb : cb,
+                    func : callback
+                });
+                element.addEventListener(evt, cb, capture);
+            }
+            return this;
         },
-        'off' : function(evt, delegate, func){
-            evt.call(obj, 'off', arguments);
-            evt = obj = null;
+        'off' : function(evt, selector, callback, capture){
+            if(element._eventList[selector]){
+                element._eventList[selector].some(function(cache){
+                    if(cache.func === callback){
+                        element.removeEventListener(evt, cache.cb, capture);
+                        return true;
+                    }
+                });
+            }
+            return this;
         }
     }
+}
+$.match = function(node, selector, context){
+    context = context || document;
+    return [].indexOf.call(context.querySelectorAll(selector) || [], node) >= 0;
 }
