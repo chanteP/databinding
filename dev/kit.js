@@ -47,10 +47,6 @@ $.isEmptyObject = function(obj){
     }
     return true;
 }
-
-$.id        = function(id){
-    return document.getElementById(id);
-}
 $.find      = function(selector, dom){
     return (dom || document).querySelector(selector);
 }
@@ -97,12 +93,12 @@ $.evt = function(element, data){
             else{
                 var cb = function(e){
                     var target = e.target;
-                    while(target !== element.parentNode){
+                    while(target && target !== element.parentNode){
                         if($.match(target, selector, element)){
                             callback.call(target, e);
                             return true;
                         }
-                        target == target.parentNode;
+                        target = target.parentNode;
                     }
                 }
                 element._eventList[selector] = element._eventList[selector] || [];
