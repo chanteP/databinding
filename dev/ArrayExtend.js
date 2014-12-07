@@ -15,3 +15,4 @@ ArrayExtendMethod.forEach(function(methodName){
 });
 ArrayExtend.bindMethodName = ArrayExtendObserveMethod;
 ArrayExtend.__proto__ = ArrayExtendProto;
+module.exports = ArrayExtend;
