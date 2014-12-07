@@ -1,5 +1,14 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*
+    存在collection里的每一个单元
+    存了都会进行单向绑定
+    DataBind.storage一览
+*/
 //################################################################################################
+/*
+    new 构造
+    func 判断
+*/
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
         if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
@@ -135,6 +144,10 @@ var listener = require('./Observer');
 var ArrayExtend = require('./ArrayExtend');
 
 },{"./ArrayExtend":2,"./Observer":7,"./config":8}],2:[function(require,module,exports){
+/*
+    扩展数组
+    进行某些操作之后执行ArrayExtendObserveMethod
+*/
 var ArrayExtend = {}, 
     ArrayExtendProto = Array.prototype, 
     ArrayExtendObserveMethod = 'arrayExtOb',
@@ -152,6 +165,7 @@ ArrayExtendMethod.forEach(function(methodName){
 });
 ArrayExtend.bindMethodName = ArrayExtendObserveMethod;
 ArrayExtend.__proto__ = ArrayExtendProto;
+module.exports = ArrayExtend;
 },{}],3:[function(require,module,exports){
 /*
     mode ? accessor : defineProp
@@ -377,7 +391,6 @@ module.exports = DataBind;
     dom绑定用外挂包
     TODO list
     -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
-    -evt跟zepto分离啊AA啊
 */
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
@@ -386,7 +399,7 @@ var config = require('./config');
 
 var $ = require('./kit');
 
-var expPreg = /{{(.*?)}}/m;
+var expPreg = new RegExp(config.expHead + '(.*?)' + config.expFoot, 'm');
 var prefix = config.DOMPrefix || 'vm-';
 var marker = {
     'model' : prefix + 'model',
@@ -423,6 +436,7 @@ var evt = $.evt,
 var main = {
     /*
         绑定解析model获取事件的节点
+        dom to data
     */
     'bindContent' : function(node){
         var evtBody = node || document.body;
@@ -443,6 +457,7 @@ var main = {
     },
     /*
         解析节点
+        dom绑定解析&纯模版化解析
     */
     'scan' : function(node, parseOnly){
         if(parseOnly){
@@ -589,6 +604,7 @@ var parse = {
         return node.parentNode ? parse.context(node.parentNode) : '';
     }
 };
+//data to dom
 var bind = {
     'model' : function(e){
         var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
@@ -683,6 +699,12 @@ var bind = {
                 func = function(){
             //TODO if(!node.parentNode){}
                     node.value = parse.text(attrText, context);
+                }
+                break;
+            case 'data-src' : 
+                func = function(){
+            //TODO if(!node.parentNode){}
+                    node.src = parse.text(attrText, context);
                 }
                 break;
             default : 
@@ -999,11 +1021,14 @@ var config = {
     'debug' : 1
 
     ,'name' : 'DataBind'
-    ,'mode' : 0
+    ,'mode' : 0 //0:def prop, 1:get()&set()
+
+    ,'expHead' : '{{'
+    ,'expFoot' : '}}'
 
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
-    ,'propagationType' : ['change']
+    ,'propagationType' : ['change'] //暂弃
     ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
     ,set : function(cfg){
@@ -1011,8 +1036,8 @@ var config = {
     }
 };
 
-if('_DataBindConfig' in window){
-    config.set(window._DataBindConfig);
+if(('_DataBindConfig' in window) || ('_config' in window)){
+    config.set(window._DataBindConfig || window._config);
 }
 module.exports = config;
 },{"./kit":10}],9:[function(require,module,exports){

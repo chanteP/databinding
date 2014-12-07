@@ -1,4 +1,13 @@
+/*
+    存在collection里的每一个单元
+    存了都会进行单向绑定
+    DataBind.storage一览
+*/
 //################################################################################################
+/*
+    new 构造
+    func 判断
+*/
 var Accessor = function(nameNS, value){
     if(arguments.length === 1){
         if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}

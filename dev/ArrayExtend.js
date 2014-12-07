@@ -1,3 +1,7 @@
+/*
+    扩展数组
+    进行某些操作之后执行ArrayExtendObserveMethod
+*/
 var ArrayExtend = {}, 
     ArrayExtendProto = Array.prototype, 
     ArrayExtendObserveMethod = 'arrayExtOb',

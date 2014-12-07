@@ -4,11 +4,14 @@ var config = {
     'debug' : 1
 
     ,'name' : 'DataBind'
-    ,'mode' : 0
+    ,'mode' : 0 //0:def prop, 1:get()&set()
+
+    ,'expHead' : '{{'
+    ,'expFoot' : '}}'
 
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
-    ,'propagationType' : ['change']
+    ,'propagationType' : ['change'] //暂弃
     ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
     ,set : function(cfg){
@@ -16,7 +19,7 @@ var config = {
     }
 };
 
-if('_DataBindConfig' in window){
-    config.set(window._DataBindConfig);
+if(('_DataBindConfig' in window) || ('_config' in window)){
+    config.set(window._DataBindConfig || window._config);
 }
 module.exports = config;
