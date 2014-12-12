@@ -49,7 +49,7 @@ $.isEmptyObject = function(obj){
 }
 $.isSimpleObject = function(obj){
     // return obj && typeof obj === 'object' && obj.__proto
-    return obj && obj.toString === '[object Object]';
+    return obj && obj.toString() === '[object Object]';
 }
 $.find      = function(selector, dom){
     return (dom || document).querySelector(selector);
