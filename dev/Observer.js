@@ -43,7 +43,7 @@ var listener = {
             args[2] = merge(args[2], extArgs);
             evtList.forEach(function(func){
                 if(typeof func !== 'function'){return;}
-                func.apply(acc.parent, args);
+                func.apply(acc.context, args);
             });
         }
         listener._fireList = null;

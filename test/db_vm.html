@@ -101,7 +101,9 @@
                 ]
             };
 
-            new DataBind('form', formData).observe('', function(value, ov, e){
+            new DataBind('form', formData, {
+                // context : document.getElementById('#wrapper')
+            }).observe('', function(value, ov, e){
                 // console.log('change',value, ov, e)
                 document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
                 // console.log(JSON.stringify(vm.form));

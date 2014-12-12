@@ -6,7 +6,6 @@
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
 var config = require('./config');
-// require('./Zepto.min');
 
 var $ = require('./kit');
 
@@ -103,10 +102,10 @@ var main = {
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
-            //节点包含{{}}
-            if(!expPreg.test(html)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
+            //节点包含{{}}
+            if(!expPreg.test(html)){return;}
             //解析attr
             check.attr(node, html);
 

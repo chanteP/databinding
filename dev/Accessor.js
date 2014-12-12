@@ -33,6 +33,7 @@ var Accessor = function(nameNS, value){
     this.parentNS   = parentNS;
     this.parentAcc  = parentAcc;
 
+
     this.deps       = [];
     this.value      = value;
     this.oldValue   = value;
@@ -41,6 +42,8 @@ var Accessor = function(nameNS, value){
     // this.list    = {};
     this.mode       = config.mode;
     this.status     = this.READY;
+
+    this.context    = this.mode ? this : this.parent;
 
     this.children   = [];
     this.propagation = config.propagation;

@@ -34,6 +34,7 @@ var Accessor = function(nameNS, value){
     this.parentNS   = parentNS;
     this.parentAcc  = parentAcc;
 
+
     this.deps       = [];
     this.value      = value;
     this.oldValue   = value;
@@ -42,6 +43,8 @@ var Accessor = function(nameNS, value){
     // this.list    = {};
     this.mode       = config.mode;
     this.status     = this.READY;
+
+    this.context    = this.mode ? this : this.parent;
 
     this.children   = [];
     this.propagation = config.propagation;
@@ -219,6 +222,12 @@ var main = {
             listener.add(dep, base.nameNS, 'change');
         });
     },
+    'configAcc' : function(acc, cfg){
+        if(!cfg || acc.nameNS.indexOf(cfg.nameNS) < 0){return;}
+        if(cfg.context){
+            acc.context = cfg.context;
+        }
+    },
     'descList' : ['get', 'set', 'change', 'propagation', 'dirty', 'value'],
     'getDesc' : function(obj){
         var desc = {}, check;
@@ -240,9 +249,9 @@ var main = {
     },
     'defProp' : function(desc, base){
         if(desc.set){
-            base.set = function(value, dirty){
-                value = desc.set.call(base.mode ? base : base.parent, value, base.value);
-                base.__proto__.set.call(base, value, dirty);
+            base.set = function(value, dirty, force){
+                value = desc.set.call(base.context, value, base.value, force);
+                base.__proto__.set.call(base, value, dirty, force);
                 return value;
             }
         }
@@ -266,14 +275,15 @@ var main = {
             base.set(base.value);
         }
     },
-    'register' : function(obj, baseNS){
+    'register' : function(obj, baseNS, cfg){
         var desc = main.getDesc(obj), base;
         obj = desc.value;
         base = Accessor(baseNS) || new Accessor(baseNS, obj);
+        main.configAcc(base, cfg);
         if(obj && obj.__proto__ === Object.prototype){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
-                main.register(obj[key], base.parseProp(key));
+                main.register(obj[key], base.parseProp(key), cfg);
             }
         }
         base.nameNS && main.defProp(desc, base);
@@ -283,8 +293,10 @@ var main = {
 
 //################################################################################################################
 var expApi = {}, expApiList;
-var DataBind = function(nameNS, obj){
+var DataBind = function(nameNS, obj, cfg){
     var ns = nameNS.split('.'), root, cur = obj;
+    cfg = cfg || {};
+    cfg.nameNS = nameNS;
     if(nameNS === ''){
         ns.length = 0;
         root = obj;
@@ -294,7 +306,7 @@ var DataBind = function(nameNS, obj){
         root[ns.pop()] = cur;
         cur = root;
     }
-    main.register(root, '');
+    main.register(root, '', cfg);
     this.name = this._name = nameNS;
 
     //TODO 改输出就是麻烦...
@@ -395,7 +407,6 @@ module.exports = DataBind;
 var DataBind = require('./DataBind');
 var expression = require('./Expression');
 var config = require('./config');
-// require('./Zepto.min');
 
 var $ = require('./kit');
 
@@ -492,10 +503,10 @@ var main = {
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
-            //节点包含{{}}
-            if(!expPreg.test(html)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
+            //节点包含{{}}
+            if(!expPreg.test(html)){return;}
             //解析attr
             check.attr(node, html);
 
@@ -965,7 +976,7 @@ var listener = {
             args[2] = merge(args[2], extArgs);
             evtList.forEach(function(func){
                 if(typeof func !== 'function'){return;}
-                func.apply(acc.parent, args);
+                func.apply(acc.context, args);
             });
         }
         listener._fireList = null;
@@ -1049,7 +1060,6 @@ if(name in window){return;}
 module.exports = window[name] = require('./DataBind').init();
 // require('./Expression');
 require('./DomExtend');
-
 },{"./DataBind":3,"./DomExtend":4,"./config":8}],10:[function(require,module,exports){
 var $ = {};
 module.exports = $;

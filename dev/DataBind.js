@@ -50,6 +50,12 @@ var main = {
             listener.add(dep, base.nameNS, 'change');
         });
     },
+    'configAcc' : function(acc, cfg){
+        if(!cfg || acc.nameNS.indexOf(cfg.nameNS) < 0){return;}
+        if(cfg.context){
+            acc.context = cfg.context;
+        }
+    },
     'descList' : ['get', 'set', 'change', 'propagation', 'dirty', 'value'],
     'getDesc' : function(obj){
         var desc = {}, check;
@@ -71,9 +77,9 @@ var main = {
     },
     'defProp' : function(desc, base){
         if(desc.set){
-            base.set = function(value, dirty){
-                value = desc.set.call(base.mode ? base : base.parent, value, base.value);
-                base.__proto__.set.call(base, value, dirty);
+            base.set = function(value, dirty, force){
+                value = desc.set.call(base.context, value, base.value, force);
+                base.__proto__.set.call(base, value, dirty, force);
                 return value;
             }
         }
@@ -97,14 +103,15 @@ var main = {
             base.set(base.value);
         }
     },
-    'register' : function(obj, baseNS){
+    'register' : function(obj, baseNS, cfg){
         var desc = main.getDesc(obj), base;
         obj = desc.value;
         base = Accessor(baseNS) || new Accessor(baseNS, obj);
+        main.configAcc(base, cfg);
         if(obj && obj.__proto__ === Object.prototype){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
-                main.register(obj[key], base.parseProp(key));
+                main.register(obj[key], base.parseProp(key), cfg);
             }
         }
         base.nameNS && main.defProp(desc, base);
@@ -114,8 +121,10 @@ var main = {
 
 //################################################################################################################
 var expApi = {}, expApiList;
-var DataBind = function(nameNS, obj){
+var DataBind = function(nameNS, obj, cfg){
     var ns = nameNS.split('.'), root, cur = obj;
+    cfg = cfg || {};
+    cfg.nameNS = nameNS;
     if(nameNS === ''){
         ns.length = 0;
         root = obj;
@@ -125,7 +134,7 @@ var DataBind = function(nameNS, obj){
         root[ns.pop()] = cur;
         cur = root;
     }
-    main.register(root, '');
+    main.register(root, '', cfg);
     this.name = this._name = nameNS;
 
     //TODO 改输出就是麻烦...
