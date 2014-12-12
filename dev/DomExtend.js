@@ -323,7 +323,7 @@ var bind = {
                 func = function(){
             //TODO if(!node.parentNode){}
                     value = parse.text(attrText, context);
-                    if(value === null || value === undefined){
+                    if(value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
                     else{
