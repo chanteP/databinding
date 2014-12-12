@@ -141,6 +141,7 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
 }
 //################################################################################################
 module.exports = Accessor;
+var $ = require('./kit');
 var config = require('./config');
 var listener = require('./Observer');
 var ArrayExtend = require('./ArrayExtend');

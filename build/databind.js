@@ -142,11 +142,12 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
 }
 //################################################################################################
 module.exports = Accessor;
+var $ = require('./kit');
 var config = require('./config');
 var listener = require('./Observer');
 var ArrayExtend = require('./ArrayExtend');
 
-},{"./ArrayExtend":2,"./Observer":7,"./config":8}],2:[function(require,module,exports){
+},{"./ArrayExtend":2,"./Observer":7,"./config":8,"./kit":10}],2:[function(require,module,exports){
 /*
     扩展数组
     进行某些操作之后执行ArrayExtendObserveMethod

@@ -1,6 +1,6 @@
 {
   "name": "np-databind",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "测试用双向绑定core，单向用也大丈夫",
   "keywords": "two-way data binding",
   "main": "index.js",
