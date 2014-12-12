@@ -322,7 +322,13 @@ var bind = {
             default : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    node.setAttribute(attrName, parse.text(attrText, context));
+                    value = parse.text(attrText, context);
+                    if(value === null || value === undefined){
+                        node.removeAttribute(attrName);
+                    }
+                    else{
+                        node.setAttribute(attrName, value);
+                    }
                 }
                 break;
         }
