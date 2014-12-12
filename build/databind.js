@@ -545,13 +545,15 @@ var check = {
         boolean check 是否为list，并绑定
     */
     'list' : function(node){
-        var listProp = node.getAttribute(marker.list);
-        if(listProp === null){return;}
+        var listProp;
+        listProp = node.getAttribute(marker.list) || node[marker.list];
+        if(listProp === null || listProp === undefined){return;}
+        node.removeAttribute(marker.list);
+        delete node[marker.list];
         //TODO WTF?
         if(listProp.indexOf(' in ') >= 0){
             listProp = listProp.split(' in ')[1];
         }
-        node.removeAttribute(marker.list);
         bind.list(node, listProp);
         return true;
     }
