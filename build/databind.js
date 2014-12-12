@@ -105,7 +105,7 @@ Accessor.prototype.set = function(value, dirty, force){
         }
     }
     //TODO 其实楼上也要！mode才绑定，等实现set数组元素再说...
-    else if(!config.mode && value && value.__proto__ === Object.prototype){
+    else if(!config.mode && $.isSimpleObject(value)){
         for(var key in value){
             if(!value.hasOwnProperty(key)){continue;}
             childAcc = Accessor(this.parseProp(key));
@@ -116,7 +116,7 @@ Accessor.prototype.set = function(value, dirty, force){
 }
 //mode=0 defineproperty绑定对象属性用
 Accessor.prototype.bindProp = function(){
-    if(this.mode || !this.parent || this.parent.__proto__ !== Object.prototype){return;}
+    if(this.mode || !$.isSimpleObject(this.parent)){return;}
     var value = this.value, self = this;
     Object.defineProperty(this.parent, this.name, {
         set : function(value){
@@ -231,7 +231,7 @@ var main = {
     'descList' : ['get', 'set', 'change', 'propagation', 'dirty', 'value'],
     'getDesc' : function(obj){
         var desc = {}, check;
-        if(!obj || obj.__proto__ !== Object.prototype){
+        if(!$.isSimpleObject(obj)){
             desc.value = obj;
         }
         else{
@@ -280,7 +280,7 @@ var main = {
         obj = desc.value;
         base = Accessor(baseNS) || new Accessor(baseNS, obj);
         main.configAcc(base, cfg);
-        if(obj && obj.__proto__ === Object.prototype){
+        if($.isSimpleObject(obj)){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
                 main.register(obj[key], base.parseProp(key), cfg);
@@ -1050,6 +1050,8 @@ var config = {
     ,'propagationType' : ['change'] //暂弃
     ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
+    ,'contextGlobal' : window 
+
     ,set : function(cfg){
         $.merge(config, cfg, true);
     }
@@ -1117,6 +1119,10 @@ $.isEmptyObject = function(obj){
         return false;
     }
     return true;
+}
+$.isSimpleObject = function(obj){
+    // return obj && typeof obj === 'object' && obj.__proto
+    return obj && obj.toString === '[object Object]';
 }
 $.find      = function(selector, dom){
     return (dom || document).querySelector(selector);

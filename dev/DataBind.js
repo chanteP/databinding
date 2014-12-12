@@ -59,7 +59,7 @@ var main = {
     'descList' : ['get', 'set', 'change', 'propagation', 'dirty', 'value'],
     'getDesc' : function(obj){
         var desc = {}, check;
-        if(!obj || obj.__proto__ !== Object.prototype){
+        if(!$.isSimpleObject(obj)){
             desc.value = obj;
         }
         else{
@@ -108,7 +108,7 @@ var main = {
         obj = desc.value;
         base = Accessor(baseNS) || new Accessor(baseNS, obj);
         main.configAcc(base, cfg);
-        if(obj && obj.__proto__ === Object.prototype){
+        if($.isSimpleObject(obj)){
             for(var key in obj){
                 if(!obj.hasOwnProperty(key)){continue;}
                 main.register(obj[key], base.parseProp(key), cfg);

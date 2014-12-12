@@ -14,6 +14,8 @@ var config = {
     ,'propagationType' : ['change'] //暂弃
     ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
 
+    ,'contextGlobal' : window 
+
     ,set : function(cfg){
         $.merge(config, cfg, true);
     }
