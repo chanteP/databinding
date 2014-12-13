@@ -411,7 +411,7 @@ var config = require('./config');
 
 var $ = require('./kit');
 
-var expPreg = new RegExp(config.expHead + '(.*?)' + config.expFoot, 'm');
+var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
 var prefix = config.DOMPrefix || 'vm-';
 var marker = {
     'model' : prefix + 'model',
