@@ -161,7 +161,7 @@ DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);
     if(check){
         typeof bool === 'boolean' && (check.propagation = bool);
-        type instanceof Array && (check.propagationType = type);
+        Array.isArray(type) && (check.propagationType = type);
     }
     return this;
 };
@@ -184,7 +184,7 @@ DataBind.get            = function(nameNS){
         index = index[2];
     }
     value = Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
-    if(index !== null && value instanceof Array){
+    if(index !== null && Array.isArray(value)){
         return value[index];
     }
     return value;

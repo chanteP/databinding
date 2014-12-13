@@ -86,7 +86,7 @@ Accessor.prototype.set = function(value, dirty, force){
     this.oldValue = value;
     this.dirty = false;
 
-    if(value instanceof Array){
+    if(Array.isArray(value)){
         var arrayChangeLock = false;
         //TODO 好挫！！！
         if('observe' in Object){

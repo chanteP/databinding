@@ -265,7 +265,7 @@ var bind = {
         main.addScanFunc(prop, function(v, ov, e){
             if(!listMark.parentNode){return;}
             var list = get(prop);
-            if(!(list instanceof Array)){return;}
+            if(!(Array.isArray(list))){return;}
             var content = listMark.parentNode;
             //TODO 增强array功能后这里就不用全部删了再加了
             [].forEach.call(listNodeCollection, function(element){

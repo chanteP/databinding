@@ -87,7 +87,7 @@ Accessor.prototype.set = function(value, dirty, force){
     this.oldValue = value;
     this.dirty = false;
 
-    if(value instanceof Array){
+    if(Array.isArray(value)){
         var arrayChangeLock = false;
         //TODO 好挫！！！
         if('observe' in Object){
@@ -334,7 +334,7 @@ DataBind.setPropagation = function(nameNS, bool, type){
     var check = DataBind.check(nameNS);
     if(check){
         typeof bool === 'boolean' && (check.propagation = bool);
-        type instanceof Array && (check.propagationType = type);
+        Array.isArray(type) && (check.propagationType = type);
     }
     return this;
 };
@@ -357,7 +357,7 @@ DataBind.get            = function(nameNS){
         index = index[2];
     }
     value = Accessor(nameNS) ? Accessor(nameNS).get() : undefined;
-    if(index !== null && value instanceof Array){
+    if(index !== null && Array.isArray(value)){
         return value[index];
     }
     return value;
@@ -667,7 +667,7 @@ var bind = {
         main.addScanFunc(prop, function(v, ov, e){
             if(!listMark.parentNode){return;}
             var list = get(prop);
-            if(!(list instanceof Array)){return;}
+            if(!(Array.isArray(list))){return;}
             var content = listMark.parentNode;
             //TODO 增强array功能后这里就不用全部删了再加了
             [].forEach.call(listNodeCollection, function(element){
