@@ -5,6 +5,7 @@
 */
 var DataBind = require('./DataBind');
 var $ = require('./kit');
+var config = require('./config');
 var Filter = require('./Filter');
 
 var scopeHolder = '$data', selfHolder = '$self';
@@ -34,16 +35,7 @@ var parser = function(expression){
     }
     if(parserCache[expression]){return parserCache[expression];}
     var funcBody, funcIns;
-    funcBody = parseDeps(expression, null, function(match){
-        var prop;
-        if(match.slice(0, 1) === '.')
-            prop = selfHolder + match;
-        else if(match.slice(0, 3) === 'vm.')
-            prop = match;
-        else
-            prop = scopeHolder + '.' + match;
-        return funcPropCheck(prop);
-    });
+    funcBody = buildFunctionBody(expression);
     // /(^( )?(if|for|else|switch|case|break|{|}))(.*)?/g;
     try{
         funcIns = new Function(scopeHolder, 'vm', selfHolder, 'return ' + funcBody);
@@ -55,23 +47,40 @@ var parser = function(expression){
     }
 }
 /*
-    
+    解析expression内用到的字段（不计array）
 */
-var parseDeps = function(expression, matchList, matchCallback){
-    //TODO cache
-    if(!matchList && !matchCallback){return;}
-    expression = getExpressionPart(expression).expression;
-    var reg = /(?=\b|\.)(?!\'|\")([\w|\.]+)(?!\'|\")\b/g, expressionBody;
+var parseDeps = function(expressionText, context){
+    var expression = getExpressionPart(expressionText).expression;
+    var reg = /(?=\b|\.|\[)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;
+    var match, col = [], temp;
     //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
-    expressionBody = expression.replace(reg, function(text, match){
-        if(isNaN(match)){
-            var dep = matchCallback ? matchCallback(match) : match;
-            matchList && matchList.push(dep);
-            return dep;
-        }
-        return match;
-    });
-    return expressionBody;
+    while(match = reg.exec(expression)){
+        if(match[1].indexOf('[') === 0){continue;}
+        temp = match[1].indexOf('[') ? match[1].split('[')[0] : match[1];
+        if(temp.slice(0, 3) === 'vm.'){}
+        else if(temp.slice(0, 1) === '.'){continue;}
+        else{temp = (context ? context + '.' : '') + temp;}
+        col.push(temp);
+    }
+    return col;
+}
+/*
+    构造解析函数
+*/
+var buildFunctionBody = function(expression){
+    var reg = /(?=\b|\.)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;
+    var match, col = [], temp;
+    //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
+    return '(' + expression.replace(reg, function(match, data){
+        var prop;
+        if(data.slice(0, 1) === '.')
+            prop = selfHolder + data;
+        else if(data.slice(0, 3) === 'vm.')
+            prop = data;
+        else
+            prop = scopeHolder + '.' + data;
+        return prop;
+    }) + ');';
 }
 var getExpressionPart = function(expressionText){
     //TODO cache

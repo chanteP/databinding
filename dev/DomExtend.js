@@ -9,16 +9,19 @@ var config = require('./config');
 
 var $ = require('./kit');
 
+//exp /{{(.*)}}/
 var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
-var prefix = config.DOMPrefix || 'vm-';
+var prefix = config.DOMPrefix;
 var marker = {
     'model' : prefix + 'model',
     'list' : prefix + 'list',
     'bind' : prefix + 'bind',
     'escape' : prefix + 'escape',
-    'toggle' : prefix + 'toggle'
+    'toggle' : prefix + 'toggle',
+    'extraData' : prefix + 'extraExpData'
 }
 var indexPreg = /\[(\d+)\]$/;
+var listPreg = /([\w\.]+)\s+in\s+([\w\.]+)/;
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
 var scanQueue = [];
@@ -145,16 +148,13 @@ var check = {
     */
     'list' : function(node){
         var listProp;
-        listProp = node.getAttribute(marker.list) || node[marker.list];
-        if(listProp === null || listProp === undefined){return;}
-        node.removeAttribute(marker.list);
-        delete node[marker.list];
-        //TODO WTF?
-        if(listProp.indexOf(' in ') >= 0){
-            listProp = listProp.split(' in ')[1];
+        listProp = node.getAttribute(marker.list);
+        if(typeof listProp === 'string' && (listProp = listPreg.exec(listProp))){
+            node.removeAttribute(marker.list);
+            listProp.shift();
+            bind.list(node, listProp);
+            return true;
         }
-        bind.list(node, listProp);
-        return true;
     }
 }
 var parse = {
@@ -168,14 +168,7 @@ var parse = {
         }
         expressions = parse.exps(text);
         expressions.forEach(function(exp){
-            expression.parseDeps(exp, deps, function(dep){
-                if(dep.indexOf('[') >= 1){
-                    dep = dep.split('[')[0];
-                }
-                if(dep.slice(0, 3) === 'vm.'){return dep.slice(2, -1)}
-                if(dep.slice(0, 1) === '.'){return context;}
-                return context ? context + '.' + dep : dep;
-            });
+            deps.splice(deps.length, 0, expression.parseDeps(exp, context));
         });
         return unique(deps);
     },
@@ -190,13 +183,19 @@ var parse = {
         return expressions;
     },
     /*
+        Object extraData
+    */
+    'extraData' : function(node){
+        if(node[marker.extraData]){
+            return node[marker.extraData];
+        }
+        return node.parentNode ? parse.extraData(node.parentNode) : undefined;
+    },
+    /*
         String 根据表达式解析text
     */
-    'text' : function(text, context){
+    'text' : function(text, context, extra){
         var extra, rs, value = get(context);
-        if(rs = indexPreg.exec(context)){
-            extra = {index:rs[1],name:value};
-        }
         return text.replace(new RegExp(expPreg.source, 'mg'), function(t, match){
             return expression(match, value, vm, extra);
         });
@@ -253,30 +252,53 @@ var bind = {
         }
         set(model, value);
     },
-    'list' : function(node, prop){
+    'list' : function(node, propGroup){
         var template = node.outerHTML;
         var context = parse.context(node);
         node[marker.bind] = context;
 
-        prop = (context ? context + '.' + prop : prop);
-        var listMark = document.createComment('list for ' + prop),
+        var writeProp = propGroup[0],
+            useProp = propGroup[1];
+
+        //list: tr to table 替换
+        var templateFunc = function(template, index, writeProp, useProp){
+            var listExpPreg = new RegExp(expPreg.source, 'mg'),
+                fieldPreg = new RegExp('(?:\\s|\\b)('+writeProp+'\\.)', 'mg');
+            return template.replace(listExpPreg, function(match, exp){
+                return match.replace(fieldPreg, function(match, matchContext){
+                    return ' ' + useProp + '['+index+'].';
+                });
+            });
+        }
+
+        var prop = (context ? context + '.' + useProp : useProp);
+
+        //TODO 备用标注
+        var listMarkEnd = document.createComment('list for ' + useProp + ' as ' + writeProp + 'end'),
+            listMarkStart = document.createComment('list for ' + useProp + ' as ' + writeProp + 'start'),
             listNodeCollection = [];
-        node.parentNode.replaceChild(listMark, node);
+
+        node.parentNode.insertBefore(listMarkStart, node);
+        node.parentNode.replaceChild(listMarkEnd, node);
         main.addScanFunc(prop, function(v, ov, e){
-            if(!listMark.parentNode){return;}
+            if(!listMarkEnd.parentNode){return;}
             var list = get(prop);
             if(!(Array.isArray(list))){return;}
-            var content = listMark.parentNode;
+            var content = listMarkEnd.parentNode;
             //TODO 增强array功能后这里就不用全部删了再加了
             [].forEach.call(listNodeCollection, function(element){
                 remove(element);
             });
             list.forEach(function(dataElement, index){
-                var element = create(template);
+                var element = create(templateFunc(template, index, writeProp, useProp));
+                element[marker.extraData] = {
+                    index : index,
+                    value : dataElement
+                };
                 // var scope = Object.create(dataElement, {index:{value:index}});
                 // element.setAttribute(marker.bind, prop + '['+index+']');
-                element[marker.bind] = prop + '['+index+']';
-                content.insertBefore(element, listMark);
+                // element[marker.bind] = prop + '['+index+']';
+                content.insertBefore(element, listMarkEnd);
                 listNodeCollection.push(element);
                 main.scan(element);
             });
@@ -286,6 +308,7 @@ var bind = {
     'attr' : function(node, attrText, attrName){
         var context = parse.context(node), deps = parse.deps(attrText, context), func;
         node[marker.bind] = context;
+        var extraData = parse.extraData(node);
 
         switch (attrName){
             case 'checked' : 
@@ -310,19 +333,19 @@ var bind = {
             case 'value' : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    node.value = parse.text(attrText, context);
+                    node.value = parse.text(attrText, context, extraData);
                 }
                 break;
             case 'data-src' : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    node.src = parse.text(attrText, context);
+                    node.src = parse.text(attrText, context, extraData);
                 }
                 break;
             default : 
                 func = function(){
             //TODO if(!node.parentNode){}
-                    value = parse.text(attrText, context);
+                    value = parse.text(attrText, context, extraData);
                     if(value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
@@ -341,6 +364,7 @@ var bind = {
         var context = parse.context(node), deps = parse.deps(textContent, context), func;
         node[marker.bind] = context;
         var exchangeNode = node;
+        var extraData = parse.extraData(node);
         func = function(v, ov, e){
             if(e && !contains(document.documentElement, node)){
                 unobserve(e.nameNS, func, checkType);
@@ -348,7 +372,7 @@ var bind = {
             }
             if(v instanceof Node){exchangeNode = bind.element(exchangeNode, v);}
             else if(ov instanceof Node){exchangeNode = bind.element(exchangeNode, node);}
-            node.textContent = parse.text(textContent, context);
+            node.textContent = parse.text(textContent, context, extraData);
         }
         deps.forEach(function(prop){
             main.addScanFunc(prop, func);

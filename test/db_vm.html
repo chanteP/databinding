@@ -52,15 +52,15 @@
             <p>{{name['length']}}</p>
             <p>姓名是{{name == '' ? '无' : name}}, {{sex == 'male' ? '基佬' : '妹纸'}}, 职业 {{job | map({"m":"法师","s":"剑士"};,)}}</p>
             <p>{{intro | text-overflow}}</p><span style="display:{{intro['length'] > 16 ? 'block' : 'none'}};color:#c00;">超过16个字了卧槽</span>
-        </div>
+        </div>-->
         <div>{{form.table['length']}}</div>
         <button id="tableP">+</button>
         <button id="tableM">-</button>
         <table vm-bind="form">
-            <tr vm-list="table">
-                <td>{{.index}}</td>
-                <td>{{name}}</td>
-                <td>{{id}}</td>
+            <tr vm-list="tr in table">
+                <td>{{.index}} & {{sex == 'male' ? '基佬' : '妹纸'}}</td>
+                <td>{{tr.name}}</td>
+                <td>{{tr.id}}</td>
             </tr>
         </table>
         <hr >
