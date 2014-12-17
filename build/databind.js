@@ -806,7 +806,7 @@ window.document.addEventListener('DOMContentLoaded', function(){
 },{"./DataBind":3,"./config":8,"./kit":10}],5:[function(require,module,exports){
 /*
     表达式解析外挂包
-    expression('a.b.c', {a:xxx}, vm)
+    expression('a.b.c', {a:xxx}, vm， extraData)
     整个文件跟{{}}没关系啦
 */
 var DataBind = require('./DataBind');
@@ -869,6 +869,9 @@ module.exports = expression;
 
 
 },{"../node_modules/art-template/dist/template.js":11,"./DataBind":3,"./Filter":6,"./config":8,"./kit":10}],6:[function(require,module,exports){
+/*
+    liquid式预设helper外挂包
+*/
 var def = function(rs, defaultValue){
     return rs === undefined ? defaultValue : rs;
 }
@@ -1127,7 +1130,6 @@ module.exports = config;
 var name = require('./config').name;
 if(name in window){return;}
 module.exports = window[name] = require('./DataBind').init();
-// require('./Expression');
 require('./Expression.artTemplate');
 require('./DomExtend');
 },{"./DataBind":3,"./DomExtend":4,"./Expression.artTemplate":5,"./config":8}],10:[function(require,module,exports){
