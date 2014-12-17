@@ -1,39 +1,31 @@
-var filter = {
-    /*
-        a,b,c | map({a:1,b:2,c:3};,) => 1,2,3
-    */
-    'map' : function(rs, extra, json, multiMark){
-        var map = JSON.parse(json);
-        if(!multiMark){
-            rs = [rs];
-        }
-        var rsGroup = rs.split(multiMark);
-        return rsGroup.map(function(rs){
-            return map[rs] === undefined ? '' : map[rs];
-        }).join(multiMark);
-    },
-    /*
-        
-    */
-    'text-overflow' : function(rs, extra, num, holder){
-        num = num || 16;
-        holder = holder || '...';
-        if(rs && rs.toString().length > num){
-            rs = rs.slice(0, num) + holder;
-        }
-        return rs;
-    },
-    /*
-        display:none | ''
-    */
-    'display' : function(rs, extra, displayType){
-        return 'display:' + ((+rs && rs !== 'false') ? displayType || '\"\";' : 'none;');
-    }
-};
-
 module.exports = {
-    list : filter,
-    register : function(name, func){
-        filter[name] = func;
-    }
+    dateFormat : function (date, format) {
+
+        date = new Date(date);
+
+        var map = {
+            "M": date.getMonth() + 1, //月份 
+            "d": date.getDate(), //日 
+            "h": date.getHours(), //小时 
+            "m": date.getMinutes(), //分 
+            "s": date.getSeconds(), //秒 
+            "q": Math.floor((date.getMonth() + 3) / 3), //季度 
+            "S": date.getMilliseconds() //毫秒 
+        };
+        format = format.replace(/([yMdhmsqS])+/g, function(all, t){
+            var v = map[t];
+            if(v !== undefined){
+                if(all.length > 1){
+                    v = '0' + v;
+                    v = v.substr(v.length-2);
+                }
+                return v;
+            }
+            else if(t === 'y'){
+                return (date.getFullYear() + '').substr(4 - all.length);
+            }
+            return all;
+        });
+        return format;
 }
+};

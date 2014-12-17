@@ -2,7 +2,7 @@
   "name": "np-databind",
   "version": "0.2.0",
   "description": "测试用双向绑定core，单向用也大丈夫",
-  "keywords": "two-way data binding",
+  "keywords": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,6 +17,7 @@
   },
   "license": "MIT",
   "devDependencies": {
+    "art-template": "^3.0.3",
     "browserify": "^7.0.0",
     "grunt": "^0.4.5",
     "grunt-browserify": "^3.2.1",

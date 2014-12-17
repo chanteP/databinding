@@ -654,6 +654,9 @@ var bind = {
         else{
             value = this.value;
         }
+        if(!isNaN(value)){
+            value = +value;
+        }
         set(model, value);
     },
     'list' : function(node, propGroup){
@@ -811,7 +814,7 @@ var DataBind = require('./DataBind');
 var $ = require('./kit');
 var config = require('./config');
 
-var artTemplate = require('art-template');
+var artTemplate = window.template = require('art-template');
 var merge = $.merge;
 
 //################################################################################################################
@@ -820,7 +823,7 @@ var get = DataBind.get;
 var emptyFunc = function(){return '';};
 //################################################################################################################
 var parseDeps = function(expressionText, context){
-    var expression = getExpressionPart(expressionText).expression;
+    var expression = getExpressionPart(expressionText);
     var reg = /(?=\b|\.|\[)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;
     var match, col = [], temp;
     //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
@@ -836,19 +839,12 @@ var parseDeps = function(expressionText, context){
 }
 var getExpressionPart = function(expressionText){
     //TODO cache
-    var part = expressionText.split(/\|{1,1}/),
-        exp = part.shift(),
-        filterArgs = /^\s*([\w\-]+)(?:\((.+)\))?/.exec(part.join('|'));
-    return {
-        expression : exp.trim(),
-        filterName : filterArgs && filterArgs[1].trim(),
-        filterArgs : filterArgs && filterArgs[2] && filterArgs[2].split(filterArgsSplitMark)
-    }
+    return expressionText.split(/\|{1,1}/)[0].trim();
 }
 //################################################################################################################
 var expression = function(expressionText, scope, vm, extra){
     if(expressionText === undefined){return '';}
-    expressionText = config.expHead + expressionText + config.expFoot;
+    expressionText = '{{' + expressionText + '}}';
     return artTemplate.render(expressionText)(merge(
         scope,
         {vm:vm},
@@ -858,7 +854,7 @@ var expression = function(expressionText, scope, vm, extra){
 //################################################################################################################
 DataBind.expression = expression;
 DataBind.expression.parseDeps = parseDeps;
-DataBind.expression.register = function(){};
+DataBind.expression.register = artTemplate.helper;
 
 //################################################################################################################
 module.exports = expression;

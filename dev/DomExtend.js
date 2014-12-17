@@ -4,7 +4,9 @@
     -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
 */
 var DataBind = require('./DataBind');
-var expression = require('./Expression');
+var expression = DataBind.expression;
+// var expression = require('./Expression');
+// var expression = require('./Expression.artTemplate.js');
 var config = require('./config');
 
 var $ = require('./kit');
@@ -249,6 +251,9 @@ var bind = {
         }
         else{
             value = this.value;
+        }
+        if(!isNaN(value)){
+            value = +value;
         }
         set(model, value);
     },
