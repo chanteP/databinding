@@ -1,7 +1,7 @@
 /*
     dom绑定用外挂包
-    TODO list
-    -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
+
+    好长。。。该拆分了
 */
 var DataBind = require('./DataBind');
 var expression = DataBind.expression;
@@ -15,12 +15,12 @@ var $ = require('./kit');
 var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
 var prefix = config.DOMPrefix;
 var marker = {
-    'model' : prefix + 'model',
-    'list' : prefix + 'list',
-    'bind' : prefix + 'bind',
-    'escape' : prefix + 'escape',
+    'model' : prefix + 'model',//v to m
+    'list' : prefix + 'list',//list: tr in table
+    'bind' : prefix + 'bind',//scope源
+    'escape' : prefix + 'escape',//scan外
     'toggle' : prefix + 'toggle',
-    'extraData' : prefix + 'extraExpData'
+    'extraData' : prefix + 'extraExpData' //传给expression的额外数据
 }
 var indexPreg = /\[(\d+)\]$/;
 var listPreg = /([\w\.]+)\s+in\s+([\w\.]+)/;
@@ -37,7 +37,6 @@ var observe = DataBind.observe,
     fire = DataBind.fire;
 
 var parseOnlyWhileScan = false;
-
 
 //################################################################################################################
 var evt = $.evt,

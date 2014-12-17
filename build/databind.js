@@ -147,7 +147,7 @@ var config = require('./config');
 var listener = require('./Observer');
 var ArrayExtend = require('./ArrayExtend');
 
-},{"./ArrayExtend":2,"./Observer":6,"./config":7,"./kit":9}],2:[function(require,module,exports){
+},{"./ArrayExtend":2,"./Observer":7,"./config":8,"./kit":10}],2:[function(require,module,exports){
 /*
     扩展数组
     进行某些操作之后执行ArrayExtendObserveMethod
@@ -399,11 +399,11 @@ if('defineProperty' in Object){
     }
 }
 module.exports = DataBind;
-},{"./Accessor":1,"./Observer":6,"./config":7,"./kit":9}],4:[function(require,module,exports){
+},{"./Accessor":1,"./Observer":7,"./config":8,"./kit":10}],4:[function(require,module,exports){
 /*
     dom绑定用外挂包
-    TODO list
-    -scope啊啊啊啊啊dom里怎么堆scope啊啊啊
+
+    好长。。。该拆分了
 */
 var DataBind = require('./DataBind');
 var expression = DataBind.expression;
@@ -417,12 +417,12 @@ var $ = require('./kit');
 var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
 var prefix = config.DOMPrefix;
 var marker = {
-    'model' : prefix + 'model',
-    'list' : prefix + 'list',
-    'bind' : prefix + 'bind',
-    'escape' : prefix + 'escape',
+    'model' : prefix + 'model',//v to m
+    'list' : prefix + 'list',//list: tr in table
+    'bind' : prefix + 'bind',//scope源
+    'escape' : prefix + 'escape',//scan外
     'toggle' : prefix + 'toggle',
-    'extraData' : prefix + 'extraExpData'
+    'extraData' : prefix + 'extraExpData' //传给expression的额外数据
 }
 var indexPreg = /\[(\d+)\]$/;
 var listPreg = /([\w\.]+)\s+in\s+([\w\.]+)/;
@@ -439,7 +439,6 @@ var observe = DataBind.observe,
     fire = DataBind.fire;
 
 var parseOnlyWhileScan = false;
-
 
 //################################################################################################################
 var evt = $.evt,
@@ -804,7 +803,7 @@ window.document.addEventListener('DOMContentLoaded', function(){
 
 
 
-},{"./DataBind":3,"./config":7,"./kit":9}],5:[function(require,module,exports){
+},{"./DataBind":3,"./config":8,"./kit":10}],5:[function(require,module,exports){
 /*
     表达式解析外挂包
     expression('a.b.c', {a:xxx}, vm)
@@ -814,23 +813,26 @@ var DataBind = require('./DataBind');
 var $ = require('./kit');
 var config = require('./config');
 
-var artTemplate = window.template = require('art-template');
+// var artTemplate = window.template = require('art-template');
+//....默认打上debug...只能。。
+var artTemplate = window.template = require('../node_modules/art-template/dist/template.js');
+var filters = require('./Filter');
 var merge = $.merge;
+
+var rootVar = config.rootVar, rootVarLen = String(rootVar).length;
 
 //################################################################################################################
 var log = $.log;
 var get = DataBind.get;
-var emptyFunc = function(){return '';};
 //################################################################################################################
 var parseDeps = function(expressionText, context){
     var expression = getExpressionPart(expressionText);
     var reg = /(?=\b|\.|\[)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;
     var match, col = [], temp;
-    //TODO 应该是把所有变量抓出来然后判空..感觉会好一点
     while(match = reg.exec(expression)){
         if(match[1].indexOf('[') === 0){continue;}
         temp = match[1].indexOf('[') ? match[1].split('[')[0] : match[1];
-        if(temp.slice(0, 3) === 'vm.'){}
+        if(temp.slice(0, rootVarLen - 1) === rootVar + '.'){}
         else if(temp.slice(0, 1) === '.'){continue;}
         else{temp = (context ? context + '.' : '') + temp;}
         col.push(temp);
@@ -838,18 +840,24 @@ var parseDeps = function(expressionText, context){
     return col;
 }
 var getExpressionPart = function(expressionText){
-    //TODO cache
     return expressionText.split(/\|{1,1}/)[0].trim();
 }
+for(var helperName in filters){
+    if(!filters.hasOwnProperty(helperName)){continue;}
+    artTemplate.helper(helperName, filters[helperName]);
+}
 //################################################################################################################
-var expression = function(expressionText, scope, vm, extra){
+var expression = function(expressionText, scope, rootScope, extraData){
     if(expressionText === undefined){return '';}
     expressionText = '{{' + expressionText + '}}';
-    return artTemplate.render(expressionText)(merge(
+    var rs, root = {};
+    root[rootVar] = rootScope;
+    rs = artTemplate.render(expressionText)(merge(
         scope,
-        {vm:vm},
-        extra
+        root,
+        {$:extraData}
     ));
+    return rs;
 }
 //################################################################################################################
 DataBind.expression = expression;
@@ -860,7 +868,135 @@ DataBind.expression.register = artTemplate.helper;
 module.exports = expression;
 
 
-},{"./DataBind":3,"./config":7,"./kit":9,"art-template":12}],6:[function(require,module,exports){
+},{"../node_modules/art-template/dist/template.js":11,"./DataBind":3,"./Filter":6,"./config":8,"./kit":10}],6:[function(require,module,exports){
+var def = function(rs, defaultValue){
+    return rs === undefined ? defaultValue : rs;
+}
+module.exports = {
+    // date -时间格式化| date:'yyyy-MM-dd hh:mm:ss'
+    date : function (date, format) {
+        date = new Date(date);
+        if(!format){
+            return date.valueOf();
+        }
+        var map = {
+            "M": date.getMonth() + 1, //月份 
+            "d": date.getDate(), //日 
+            "h": date.getHours(), //小时 
+            "m": date.getMinutes(), //分 
+            "s": date.getSeconds(), //秒 
+            "q": Math.floor((date.getMonth() + 3) / 3), //季度 
+            "S": date.getMilliseconds() //毫秒 
+        };
+        format = format.replace(/([yMdhmsqS])+/g, function(all, t){
+            var v = map[t];
+            if(v !== undefined){
+                if(all.length > 1){
+                    v = '0' + v;
+                    v = v.substr(v.length-2);
+                }
+                return v;
+            }
+            else if(t === 'y'){
+                return (date.getFullYear() + '').substr(4 - all.length);
+            }
+            return all;
+        });
+        return format;
+    },
+    // capitalize-设置输入中的某个单词*
+    // downcase-将输入的字符串转换为小写*
+    // upcase-将输入的字符串转换为大写
+    // first-获得传入的数组的第一个元素
+    first : function(arr){
+        return arr[0];
+    },
+    // last-获得传入的数组的最后一个元素
+    last : function(arr){
+        return arr[arr.length?arr.length-1:0];
+    },
+    // join-用数组的分隔符连接数组中的元素
+    join : function(arr, joinMark){
+        return arr.join(joinMark);
+    },
+    // sort-数组中的元素排序
+    sort : function(arr, dir){
+        return arr.sort(function(a, b){return dir ? a > b : b > a;});
+    },
+    // map-通过指定的属性过滤数组中的元素
+    map : function(arr, json){
+        json = JSON.parse(json);
+        if(Array.isArray(arr)){
+            return arr.map(function(element){
+                return json[element];
+            });
+        }
+        else if(typeof arr === 'string'){
+            return json[arr];
+        }
+        return arr;
+    },
+    // size-返回一个数组或字符串的大小
+    // escape-转义一个字符串
+    // escape_once-返回HTML的转义版本，而不会影响现有的实体转义
+    // strip_html-从字符串去除HTML
+    strip_html : function(str){
+        // return str.replace()
+        return str;
+    },
+    // strip_newlines -从字符串中去除所有换行符（\ n）的
+    // newline_to_br-用HTML标记替换每个换行符（\ n）
+    // replace-替换，例如：{{ 'foofoo' | replace:'foo','bar' }} #=> 'barbar'
+    replace : function(str, match, replace){
+        return str.replace(new RegExp(match, 'g'), replace);
+    },
+    // replace_first-替换第一个，例如： '{{barbar' | replace_first:'bar','foo' }} #=> 'foobar'
+    // remove-删除，例如：{{'foobarfoobar' | remove:'foo' }} #=> 'barbar'
+    // remove_first-删除第一个，例如：{{ 'barbar' | remove_first:'bar' }} #=> 'bar'
+    // truncate-截取字符串到第x个字符
+    truncate : function(str, length){
+        return str.slice(0, length);
+    },
+    // slice-截取字符串第x个到第x个字符
+    slice : function(str, fromIndex, toIndex){
+        return str.slice(fromIndex, def(toIndex, undefined));
+    },
+    // truncatewords-截取字符串到第x个词
+    // prepend-前置添加字符串，例如：{{ 'bar' | prepend:'foo' }} #=> 'foobar'
+    prepend : function(str, appendString){
+        return def(prependString, '...') + str;
+    },
+    // append-后置追加字符串，例如：{{'foo' | append:'bar' }} #=> 'foobar'
+    append : function(str, appendString){
+        return str + def(appendString, '...');
+    },
+    // minus-减法，例如：{{ 4 | minus:2 }} #=> 2
+    minus : function(rs, num){
+        return rs - num;
+    },
+    // plus-加法，例如：{{'1' | plus:'1' }} #=> '11', {{ 1 | plus:1 }} #=> 2
+    plus : function(rs, num){
+        return rs + num;
+    },
+    // times-乘法，例如：{{ 5 | times:4 }} #=> 20
+    times : function(rs, num){
+        return rs * num;
+    },
+    // divided_by-除法，例如：{{ 10 | divided_by:2 }} #=> 5
+    divided_by : function(rs, num){
+        return rs / num;
+    },
+    // split-通过正则表达式切分字符串为数组，例如：{{"a~b" | split:"~" }} #=> ['a','b']
+    split : function(str, splitMark){
+        return str.split(def(splitMark, ','));
+    },
+    // modulo-取模，例如：{{ 3 | modulo:2 }} #=> 1
+    modulo : function(rs, num){
+        return rs % num;
+    }
+};
+
+},{}],7:[function(require,module,exports){
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
@@ -955,7 +1091,7 @@ var merge = $.merge;
 var unique = $.unique;
 var Accessor = require('./Accessor');
 
-},{"./Accessor":1,"./kit":9}],7:[function(require,module,exports){
+},{"./Accessor":1,"./kit":10}],8:[function(require,module,exports){
 var $ = require('./kit');
 var config = {
 
@@ -967,6 +1103,7 @@ var config = {
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
 
+    ,'rootVar' : 'vm' //备用
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
@@ -983,7 +1120,7 @@ if(('_DataBindConfig' in window) || ('_config' in window)){
     config.set(window._DataBindConfig || window._config);
 }
 module.exports = config;
-},{"./kit":9}],8:[function(require,module,exports){
+},{"./kit":10}],9:[function(require,module,exports){
 /*!
     Σヾ(ﾟДﾟ)ﾉ
 */
@@ -993,7 +1130,7 @@ module.exports = window[name] = require('./DataBind').init();
 // require('./Expression');
 require('./Expression.artTemplate');
 require('./DomExtend');
-},{"./DataBind":3,"./DomExtend":4,"./Expression.artTemplate":5,"./config":7}],9:[function(require,module,exports){
+},{"./DataBind":3,"./DomExtend":4,"./Expression.artTemplate":5,"./config":8}],10:[function(require,module,exports){
 var $ = {};
 module.exports = $;
 var config = require('./config');
@@ -1128,1160 +1265,7 @@ $.match = function(node, selector, context){
     return [].indexOf.call(context.querySelectorAll(selector) || [], node) >= 0;
 }
 
-},{"./config":7}],10:[function(require,module,exports){
-/*!
- * artTemplate - Template Engine
- * https://github.com/aui/artTemplate
- * Released under the MIT, BSD, and GPL Licenses
- */
- 
-!(function () {
-
-
-/**
- * 模板引擎
- * @name    template
- * @param   {String}            模板名
- * @param   {Object, String}    数据。如果为字符串则编译并缓存编译结果
- * @return  {String, Function}  渲染好的HTML字符串或者渲染方法
- */
-var template = function (filename, content) {
-    return typeof content === 'string'
-    ?   compile(content, {
-            filename: filename
-        })
-    :   renderFile(filename, content);
-};
-
-
-template.version = '3.0.0';
-
-
-/**
- * 设置全局配置
- * @name    template.config
- * @param   {String}    名称
- * @param   {Any}       值
- */
-template.config = function (name, value) {
-    defaults[name] = value;
-};
-
-
-
-var defaults = template.defaults = {
-    openTag: '<%',    // 逻辑语法开始标签
-    closeTag: '%>',   // 逻辑语法结束标签
-    escape: true,     // 是否编码输出变量的 HTML 字符
-    cache: true,      // 是否开启缓存（依赖 options 的 filename 字段）
-    compress: false,  // 是否压缩输出
-    parser: null      // 自定义语法格式器 @see: template-syntax.js
-};
-
-
-var cacheStore = template.cache = {};
-
-
-/**
- * 渲染模板
- * @name    template.render
- * @param   {String}    模板
- * @param   {Object}    数据
- * @return  {String}    渲染好的字符串
- */
-template.render = function (source, options) {
-    return compile(source, options);
-};
-
-
-/**
- * 渲染模板(根据模板名)
- * @name    template.render
- * @param   {String}    模板名
- * @param   {Object}    数据
- * @return  {String}    渲染好的字符串
- */
-var renderFile = template.renderFile = function (filename, data) {
-    var fn = template.get(filename) || showDebugInfo({
-        filename: filename,
-        name: 'Render Error',
-        message: 'Template not found'
-    });
-    return data ? fn(data) : fn;
-};
-
-
-/**
- * 获取编译缓存（可由外部重写此方法）
- * @param   {String}    模板名
- * @param   {Function}  编译好的函数
- */
-template.get = function (filename) {
-
-    var cache;
-    
-    if (cacheStore[filename]) {
-        // 使用内存缓存
-        cache = cacheStore[filename];
-    } else if (typeof document === 'object') {
-        // 加载模板并编译
-        var elem = document.getElementById(filename);
-        
-        if (elem) {
-            var source = (elem.value || elem.innerHTML)
-            .replace(/^\s*|\s*$/g, '');
-            cache = compile(source, {
-                filename: filename
-            });
-        }
-    }
-
-    return cache;
-};
-
-
-var toString = function (value, type) {
-
-    if (typeof value !== 'string') {
-
-        type = typeof value;
-        if (type === 'number') {
-            value += '';
-        } else if (type === 'function') {
-            value = toString(value.call(value));
-        } else {
-            value = '';
-        }
-    }
-
-    return value;
-
-};
-
-
-var escapeMap = {
-    "<": "&#60;",
-    ">": "&#62;",
-    '"': "&#34;",
-    "'": "&#39;",
-    "&": "&#38;"
-};
-
-
-var escapeFn = function (s) {
-    return escapeMap[s];
-};
-
-var escapeHTML = function (content) {
-    return toString(content)
-    .replace(/&(?![\w#]+;)|[<>"']/g, escapeFn);
-};
-
-
-var isArray = Array.isArray || function (obj) {
-    return ({}).toString.call(obj) === '[object Array]';
-};
-
-
-var each = function (data, callback) {
-    var i, len;        
-    if (isArray(data)) {
-        for (i = 0, len = data.length; i < len; i++) {
-            callback.call(data, data[i], i, data);
-        }
-    } else {
-        for (i in data) {
-            callback.call(data, data[i], i);
-        }
-    }
-};
-
-
-var utils = template.utils = {
-
-	$helpers: {},
-
-    $include: renderFile,
-
-    $string: toString,
-
-    $escape: escapeHTML,
-
-    $each: each
-    
-};/**
- * 添加模板辅助方法
- * @name    template.helper
- * @param   {String}    名称
- * @param   {Function}  方法
- */
-template.helper = function (name, helper) {
-    helpers[name] = helper;
-};
-
-var helpers = template.helpers = utils.$helpers;
-
-
-
-
-/**
- * 模板错误事件（可由外部重写此方法）
- * @name    template.onerror
- * @event
- */
-template.onerror = function (e) {
-    var message = 'Template Error\n\n';
-    for (var name in e) {
-        message += '<' + name + '>\n' + e[name] + '\n\n';
-    }
-    
-    if (typeof console === 'object') {
-        console.error(message);
-    }
-};
-
-
-// 模板调试器
-var showDebugInfo = function (e) {
-
-    template.onerror(e);
-    
-    return function () {
-        return '{Template Error}';
-    };
-};
-
-
-/**
- * 编译模板
- * 2012-6-6 @TooBug: define 方法名改为 compile，与 Node Express 保持一致
- * @name    template.compile
- * @param   {String}    模板字符串
- * @param   {Object}    编译选项
- *
- *      - openTag       {String}
- *      - closeTag      {String}
- *      - filename      {String}
- *      - escape        {Boolean}
- *      - compress      {Boolean}
- *      - debug         {Boolean}
- *      - cache         {Boolean}
- *      - parser        {Function}
- *
- * @return  {Function}  渲染方法
- */
-var compile = template.compile = function (source, options) {
-    
-    // 合并默认配置
-    options = options || {};
-    for (var name in defaults) {
-        if (options[name] === undefined) {
-            options[name] = defaults[name];
-        }
-    }
-
-
-    var filename = options.filename;
-
-
-    try {
-        
-        var Render = compiler(source, options);
-        
-    } catch (e) {
-    
-        e.filename = filename || 'anonymous';
-        e.name = 'Syntax Error';
-
-        return showDebugInfo(e);
-        
-    }
-    
-    
-    // 对编译结果进行一次包装
-
-    function render (data) {
-        
-        try {
-            
-            return new Render(data, filename) + '';
-            
-        } catch (e) {
-            
-            // 运行时出错后自动开启调试模式重新编译
-            if (!options.debug) {
-                options.debug = true;
-                return compile(source, options)(data);
-            }
-            
-            return showDebugInfo(e)();
-            
-        }
-        
-    }
-    
-
-    render.prototype = Render.prototype;
-    render.toString = function () {
-        return Render.toString();
-    };
-
-
-    if (filename && options.cache) {
-        cacheStore[filename] = render;
-    }
-
-    
-    return render;
-
-};
-
-
-
-
-// 数组迭代
-var forEach = utils.$each;
-
-
-// 静态分析模板变量
-var KEYWORDS =
-    // 关键字
-    'break,case,catch,continue,debugger,default,delete,do,else,false'
-    + ',finally,for,function,if,in,instanceof,new,null,return,switch,this'
-    + ',throw,true,try,typeof,var,void,while,with'
-
-    // 保留字
-    + ',abstract,boolean,byte,char,class,const,double,enum,export,extends'
-    + ',final,float,goto,implements,import,int,interface,long,native'
-    + ',package,private,protected,public,short,static,super,synchronized'
-    + ',throws,transient,volatile'
-
-    // ECMA 5 - use strict
-    + ',arguments,let,yield'
-
-    + ',undefined';
-
-var REMOVE_RE = /\/\*[\w\W]*?\*\/|\/\/[^\n]*\n|\/\/[^\n]*$|"(?:[^"\\]|\\[\w\W])*"|'(?:[^'\\]|\\[\w\W])*'|\s*\.\s*[$\w\.]+/g;
-var SPLIT_RE = /[^\w$]+/g;
-var KEYWORDS_RE = new RegExp(["\\b" + KEYWORDS.replace(/,/g, '\\b|\\b') + "\\b"].join('|'), 'g');
-var NUMBER_RE = /^\d[^,]*|,\d[^,]*/g;
-var BOUNDARY_RE = /^,+|,+$/g;
-var SPLIT2_RE = /^$|,+/;
-
-
-// 获取变量
-function getVariable (code) {
-    return code
-    .replace(REMOVE_RE, '')
-    .replace(SPLIT_RE, ',')
-    .replace(KEYWORDS_RE, '')
-    .replace(NUMBER_RE, '')
-    .replace(BOUNDARY_RE, '')
-    .split(SPLIT2_RE);
-};
-
-
-// 字符串转义
-function stringify (code) {
-    return "'" + code
-    // 单引号与反斜杠转义
-    .replace(/('|\\)/g, '\\$1')
-    // 换行符转义(windows + linux)
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n') + "'";
-}
-
-
-function compiler (source, options) {
-    
-    var debug = options.debug;
-    var openTag = options.openTag;
-    var closeTag = options.closeTag;
-    var parser = options.parser;
-    var compress = options.compress;
-    var escape = options.escape;
-    
-
-    
-    var line = 1;
-    var uniq = {$data:1,$filename:1,$utils:1,$helpers:1,$out:1,$line:1};
-    
-
-
-    var isNewEngine = ''.trim;// '__proto__' in {}
-    var replaces = isNewEngine
-    ? ["$out='';", "$out+=", ";", "$out"]
-    : ["$out=[];", "$out.push(", ");", "$out.join('')"];
-
-    var concat = isNewEngine
-        ? "$out+=text;return $out;"
-        : "$out.push(text);";
-          
-    var print = "function(){"
-    +      "var text=''.concat.apply('',arguments);"
-    +       concat
-    +  "}";
-
-    var include = "function(filename,data){"
-    +      "data=data||$data;"
-    +      "var text=$utils.$include(filename,data,$filename);"
-    +       concat
-    +   "}";
-
-    var headerCode = "'use strict';"
-    + "var $utils=this,$helpers=$utils.$helpers,"
-    + (debug ? "$line=0," : "");
-    
-    var mainCode = replaces[0];
-
-    var footerCode = "return new String(" + replaces[3] + ");"
-    
-    // html与逻辑语法分离
-    forEach(source.split(openTag), function (code) {
-        code = code.split(closeTag);
-        
-        var $0 = code[0];
-        var $1 = code[1];
-        
-        // code: [html]
-        if (code.length === 1) {
-            
-            mainCode += html($0);
-         
-        // code: [logic, html]
-        } else {
-            
-            mainCode += logic($0);
-            
-            if ($1) {
-                mainCode += html($1);
-            }
-        }
-        
-
-    });
-    
-    var code = headerCode + mainCode + footerCode;
-    
-    // 调试语句
-    if (debug) {
-        code = "try{" + code + "}catch(e){"
-        +       "throw {"
-        +           "filename:$filename,"
-        +           "name:'Render Error',"
-        +           "message:e.message,"
-        +           "line:$line,"
-        +           "source:" + stringify(source)
-        +           ".split(/\\n/)[$line-1].replace(/^\\s+/,'')"
-        +       "};"
-        + "}";
-    }
-    
-    
-    
-    try {
-        
-        
-        var Render = new Function("$data", "$filename", code);
-        Render.prototype = utils;
-
-        return Render;
-        
-    } catch (e) {
-        e.temp = "function anonymous($data,$filename) {" + code + "}";
-        throw e;
-    }
-
-
-
-    
-    // 处理 HTML 语句
-    function html (code) {
-        
-        // 记录行号
-        line += code.split(/\n/).length - 1;
-
-        // 压缩多余空白与注释
-        if (compress) {
-            code = code
-            .replace(/\s+/g, ' ')
-            .replace(/<!--[\w\W]*?-->/g, '');
-        }
-        
-        if (code) {
-            code = replaces[1] + stringify(code) + replaces[2] + "\n";
-        }
-
-        return code;
-    }
-    
-    
-    // 处理逻辑语句
-    function logic (code) {
-
-        var thisLine = line;
-       
-        if (parser) {
-        
-             // 语法转换插件钩子
-            code = parser(code, options);
-            
-        } else if (debug) {
-        
-            // 记录行号
-            code = code.replace(/\n/g, function () {
-                line ++;
-                return "$line=" + line +  ";";
-            });
-            
-        }
-        
-        
-        // 输出语句. 编码: <%=value%> 不编码:<%=#value%>
-        // <%=#value%> 等同 v2.0.3 之前的 <%==value%>
-        if (code.indexOf('=') === 0) {
-
-            var escapeSyntax = escape && !/^=[=#]/.test(code);
-
-            code = code.replace(/^=[=#]?|[\s;]*$/g, '');
-
-            // 对内容编码
-            if (escapeSyntax) {
-
-                var name = code.replace(/\s*\([^\)]+\)/, '');
-
-                // 排除 utils.* | include | print
-                
-                if (!utils[name] && !/^(include|print)$/.test(name)) {
-                    code = "$escape(" + code + ")";
-                }
-
-            // 不编码
-            } else {
-                code = "$string(" + code + ")";
-            }
-            
-
-            code = replaces[1] + code + replaces[2];
-
-        }
-        
-        if (debug) {
-            code = "$line=" + thisLine + ";" + code;
-        }
-        
-        // 提取模板中的变量名
-        forEach(getVariable(code), function (name) {
-            
-            // name 值可能为空，在安卓低版本浏览器下
-            if (!name || uniq[name]) {
-                return;
-            }
-
-            var value;
-
-            // 声明模板变量
-            // 赋值优先级:
-            // [include, print] > utils > helpers > data
-            if (name === 'print') {
-
-                value = print;
-
-            } else if (name === 'include') {
-                
-                value = include;
-                
-            } else if (utils[name]) {
-
-                value = "$utils." + name;
-
-            } else if (helpers[name]) {
-
-                value = "$helpers." + name;
-
-            } else {
-
-                value = "$data." + name;
-            }
-            
-            headerCode += name + "=" + value + ",";
-            uniq[name] = true;
-            
-            
-        });
-        
-        return code + "\n";
-    }
-    
-    
-};
-
-
-
-// 定义模板引擎的语法
-
-
-defaults.openTag = '{{';
-defaults.closeTag = '}}';
-
-
-var filtered = function (js, filter) {
-    var parts = filter.split(':');
-    var name = parts.shift();
-    var args = parts.join(':') || '';
-
-    if (args) {
-        args = ', ' + args;
-    }
-
-    return '$helpers.' + name + '(' + js + args + ')';
-}
-
-
-defaults.parser = function (code, options) {
-
-    // var match = code.match(/([\w\$]*)(\b.*)/);
-    // var key = match[1];
-    // var args = match[2];
-    // var split = args.split(' ');
-    // split.shift();
-
-    code = code.replace(/^\s/, '');
-
-    var split = code.split(' ');
-    var key = split.shift();
-    var args = split.join(' ');
-
-    
-
-    switch (key) {
-
-        case 'if':
-
-            code = 'if(' + args + '){';
-            break;
-
-        case 'else':
-            
-            if (split.shift() === 'if') {
-                split = ' if(' + split.join(' ') + ')';
-            } else {
-                split = '';
-            }
-
-            code = '}else' + split + '{';
-            break;
-
-        case '/if':
-
-            code = '}';
-            break;
-
-        case 'each':
-            
-            var object = split[0] || '$data';
-            var as     = split[1] || 'as';
-            var value  = split[2] || '$value';
-            var index  = split[3] || '$index';
-            
-            var param   = value + ',' + index;
-            
-            if (as !== 'as') {
-                object = '[]';
-            }
-            
-            code =  '$each(' + object + ',function(' + param + '){';
-            break;
-
-        case '/each':
-
-            code = '});';
-            break;
-
-        case 'echo':
-
-            code = 'print(' + args + ');';
-            break;
-
-        case 'print':
-        case 'include':
-
-            code = key + '(' + split.join(',') + ');';
-            break;
-
-        default:
-
-            // 过滤器（辅助方法）
-            // {{value | filterA:'abcd' | filterB}}
-            // >>> $helpers.filterB($helpers.filterA(value, 'abcd'))
-            // TODO: {{ddd||aaa}} 不包含空格
-            if (/^\s*\|\s*[\w\$]/.test(args)) {
-
-                var escape = true;
-
-                // {{#value | link}}
-                if (code.indexOf('#') === 0) {
-                    code = code.substr(1);
-                    escape = false;
-                }
-
-                var i = 0;
-                var array = code.split('|');
-                var len = array.length;
-                var val = array[i++];
-
-                for (; i < len; i ++) {
-                    val = filtered(val, array[i]);
-                }
-
-                code = (escape ? '=' : '=#') + val;
-
-            // 即将弃用 {{helperName value}}
-            } else if (template.helpers[key]) {
-                
-                code = '=#' + key + '(' + split.join(',') + ');';
-            
-            // 内容直接输出 {{value}}
-            } else {
-
-                code = '=' + code;
-            }
-
-            break;
-    }
-    
-    
-    return code;
-};
-
-
-
-// RequireJS && SeaJS
-if (typeof define === 'function') {
-    define(function() {
-        return template;
-    });
-
-// NodeJS
-} else if (typeof exports !== 'undefined') {
-    module.exports = template;
-} else {
-    this.template = template;
-}
-
-})();
-},{}],11:[function(require,module,exports){
-var fs = require('fs');
-var path = require('path');
-
-module.exports = function (template) {
-
-	var cacheStore = template.cache;
-	var defaults = template.defaults;
-	var rExtname;
-
-	// 提供新的配置字段
-	defaults.base = '';
-	defaults.extname = '.html';
-	defaults.encoding = 'utf-8';
-
-
-	// 重写引擎编译结果获取方法
-	template.get = function (filename) {
-		
-	    var fn;
-	    
-	    if (cacheStore.hasOwnProperty(filename)) {
-	        // 使用内存缓存
-	        fn = cacheStore[filename];
-	    } else {
-	        // 加载模板并编译
-	        var source = readTemplate(filename);
-	        if (typeof source === 'string') {
-	            fn = template.compile(source, {
-	                filename: filename
-	            });
-	        }
-	    }
-
-	    return fn;
-	};
-
-	
-	function readTemplate (id) {
-	    id = path.join(defaults.base, id + defaults.extname);
-	    
-	    if (id.indexOf(defaults.base) !== 0) {
-	        // 安全限制：禁止超出模板目录之外调用文件
-	        throw new Error('"' + id + '" is not in the template directory');
-	    } else {
-	        try {
-	            return fs.readFileSync(id, defaults.encoding);
-	        } catch (e) {}
-	    }
-	}
-
-
-	// 重写模板`include``语句实现方法，转换模板为绝对路径
-	template.utils.$include = function (filename, data, from) {
-	    
-	    from = path.dirname(from);
-	    filename = path.join(from, filename);
-	    
-	    return template.renderFile(filename, data);
-	}
-
-
-	// express support
-	template.__express = function (file, options, fn) {
-
-	    if (typeof options === 'function') {
-	        fn = options;
-	        options = {};
-	    }
-
-
-		if (!rExtname) {
-			// 去掉 express 传入的路径
-			rExtname = new RegExp((defaults.extname + '$').replace(/\./g, '\\.'));
-		}
-
-
-	    file = file.replace(rExtname, '');
-
-	    options.filename = file;
-	    fn(null, template.renderFile(file, options));
-	};
-
-
-	return template;
-}
-},{"fs":13,"path":14}],12:[function(require,module,exports){
-/*!
- * artTemplate[NodeJS]
- * https://github.com/aui/artTemplate
- * Released under the MIT, BSD, and GPL Licenses
- */
-
-var node = require('./_node.js');
-var template = require('../dist/template-debug.js');
-module.exports = node(template);
-},{"../dist/template-debug.js":10,"./_node.js":11}],13:[function(require,module,exports){
-
-},{}],14:[function(require,module,exports){
-(function (process){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-// resolves . and .. elements in a path array with directory names there
-// must be no slashes, empty elements, or device names (c:\) in the array
-// (so also no leading and trailing slashes - it does not distinguish
-// relative and absolute paths)
-function normalizeArray(parts, allowAboveRoot) {
-  // if the path tries to go above the root, `up` ends up > 0
-  var up = 0;
-  for (var i = parts.length - 1; i >= 0; i--) {
-    var last = parts[i];
-    if (last === '.') {
-      parts.splice(i, 1);
-    } else if (last === '..') {
-      parts.splice(i, 1);
-      up++;
-    } else if (up) {
-      parts.splice(i, 1);
-      up--;
-    }
-  }
-
-  // if the path is allowed to go above the root, restore leading ..s
-  if (allowAboveRoot) {
-    for (; up--; up) {
-      parts.unshift('..');
-    }
-  }
-
-  return parts;
-}
-
-// Split a filename into [root, dir, basename, ext], unix version
-// 'root' is just a slash, or nothing.
-var splitPathRe =
-    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
-var splitPath = function(filename) {
-  return splitPathRe.exec(filename).slice(1);
-};
-
-// path.resolve([from ...], to)
-// posix version
-exports.resolve = function() {
-  var resolvedPath = '',
-      resolvedAbsolute = false;
-
-  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
-    var path = (i >= 0) ? arguments[i] : process.cwd();
-
-    // Skip empty and invalid entries
-    if (typeof path !== 'string') {
-      throw new TypeError('Arguments to path.resolve must be strings');
-    } else if (!path) {
-      continue;
-    }
-
-    resolvedPath = path + '/' + resolvedPath;
-    resolvedAbsolute = path.charAt(0) === '/';
-  }
-
-  // At this point the path should be resolved to a full absolute path, but
-  // handle relative paths to be safe (might happen when process.cwd() fails)
-
-  // Normalize the path
-  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
-    return !!p;
-  }), !resolvedAbsolute).join('/');
-
-  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
-};
-
-// path.normalize(path)
-// posix version
-exports.normalize = function(path) {
-  var isAbsolute = exports.isAbsolute(path),
-      trailingSlash = substr(path, -1) === '/';
-
-  // Normalize the path
-  path = normalizeArray(filter(path.split('/'), function(p) {
-    return !!p;
-  }), !isAbsolute).join('/');
-
-  if (!path && !isAbsolute) {
-    path = '.';
-  }
-  if (path && trailingSlash) {
-    path += '/';
-  }
-
-  return (isAbsolute ? '/' : '') + path;
-};
-
-// posix version
-exports.isAbsolute = function(path) {
-  return path.charAt(0) === '/';
-};
-
-// posix version
-exports.join = function() {
-  var paths = Array.prototype.slice.call(arguments, 0);
-  return exports.normalize(filter(paths, function(p, index) {
-    if (typeof p !== 'string') {
-      throw new TypeError('Arguments to path.join must be strings');
-    }
-    return p;
-  }).join('/'));
-};
-
-
-// path.relative(from, to)
-// posix version
-exports.relative = function(from, to) {
-  from = exports.resolve(from).substr(1);
-  to = exports.resolve(to).substr(1);
-
-  function trim(arr) {
-    var start = 0;
-    for (; start < arr.length; start++) {
-      if (arr[start] !== '') break;
-    }
-
-    var end = arr.length - 1;
-    for (; end >= 0; end--) {
-      if (arr[end] !== '') break;
-    }
-
-    if (start > end) return [];
-    return arr.slice(start, end - start + 1);
-  }
-
-  var fromParts = trim(from.split('/'));
-  var toParts = trim(to.split('/'));
-
-  var length = Math.min(fromParts.length, toParts.length);
-  var samePartsLength = length;
-  for (var i = 0; i < length; i++) {
-    if (fromParts[i] !== toParts[i]) {
-      samePartsLength = i;
-      break;
-    }
-  }
-
-  var outputParts = [];
-  for (var i = samePartsLength; i < fromParts.length; i++) {
-    outputParts.push('..');
-  }
-
-  outputParts = outputParts.concat(toParts.slice(samePartsLength));
-
-  return outputParts.join('/');
-};
-
-exports.sep = '/';
-exports.delimiter = ':';
-
-exports.dirname = function(path) {
-  var result = splitPath(path),
-      root = result[0],
-      dir = result[1];
-
-  if (!root && !dir) {
-    // No dirname whatsoever
-    return '.';
-  }
-
-  if (dir) {
-    // It has a dirname, strip trailing slash
-    dir = dir.substr(0, dir.length - 1);
-  }
-
-  return root + dir;
-};
-
-
-exports.basename = function(path, ext) {
-  var f = splitPath(path)[2];
-  // TODO: make this comparison case-insensitive on windows?
-  if (ext && f.substr(-1 * ext.length) === ext) {
-    f = f.substr(0, f.length - ext.length);
-  }
-  return f;
-};
-
-
-exports.extname = function(path) {
-  return splitPath(path)[3];
-};
-
-function filter (xs, f) {
-    if (xs.filter) return xs.filter(f);
-    var res = [];
-    for (var i = 0; i < xs.length; i++) {
-        if (f(xs[i], i, xs)) res.push(xs[i]);
-    }
-    return res;
-}
-
-// String.prototype.substr - negative index don't work in IE8
-var substr = 'ab'.substr(-1) === 'b'
-    ? function (str, start, len) { return str.substr(start, len) }
-    : function (str, start, len) {
-        if (start < 0) start = str.length + start;
-        return str.substr(start, len);
-    }
-;
-
-}).call(this,require('_process'))
-},{"_process":15}],15:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canMutationObserver = typeof window !== 'undefined'
-    && window.MutationObserver;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    var queue = [];
-
-    if (canMutationObserver) {
-        var hiddenDiv = document.createElement("div");
-        var observer = new MutationObserver(function () {
-            var queueList = queue.slice();
-            queue.length = 0;
-            queueList.forEach(function (fn) {
-                fn();
-            });
-        });
-
-        observer.observe(hiddenDiv, { attributes: true });
-
-        return function nextTick(fn) {
-            if (!queue.length) {
-                hiddenDiv.setAttribute('yes', 'no');
-            }
-            queue.push(fn);
-        };
-    }
-
-    if (canPost) {
-        window.addEventListener('message', function (ev) {
-            var source = ev.source;
-            if ((source === window || source === null) && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-function noop() {}
-
-process.on = noop;
-process.addListener = noop;
-process.once = noop;
-process.off = noop;
-process.removeListener = noop;
-process.removeAllListeners = noop;
-process.emit = noop;
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-};
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-
-},{}]},{},[8]);
+},{"./config":8}],11:[function(require,module,exports){
+/*!art-template - Template Engine | http://aui.github.com/artTemplate/*/
+!function(){function a(a){return a.replace(t,"").replace(u,",").replace(v,"").replace(w,"").replace(x,"").split(y)}function b(a){return"'"+a.replace(/('|\\)/g,"\\$1").replace(/\r/g,"\\r").replace(/\n/g,"\\n")+"'"}function c(c,d){function e(a){return m+=a.split(/\n/).length-1,k&&(a=a.replace(/\s+/g," ").replace(/<!--[\w\W]*?-->/g,"")),a&&(a=s[1]+b(a)+s[2]+"\n"),a}function f(b){var c=m;if(j?b=j(b,d):g&&(b=b.replace(/\n/g,function(){return m++,"$line="+m+";"})),0===b.indexOf("=")){var e=l&&!/^=[=#]/.test(b);if(b=b.replace(/^=[=#]?|[\s;]*$/g,""),e){var f=b.replace(/\s*\([^\)]+\)/,"");n[f]||/^(include|print)$/.test(f)||(b="$escape("+b+")")}else b="$string("+b+")";b=s[1]+b+s[2]}return g&&(b="$line="+c+";"+b),r(a(b),function(a){if(a&&!p[a]){var b;b="print"===a?u:"include"===a?v:n[a]?"$utils."+a:o[a]?"$helpers."+a:"$data."+a,w+=a+"="+b+",",p[a]=!0}}),b+"\n"}var g=d.debug,h=d.openTag,i=d.closeTag,j=d.parser,k=d.compress,l=d.escape,m=1,p={$data:1,$filename:1,$utils:1,$helpers:1,$out:1,$line:1},q="".trim,s=q?["$out='';","$out+=",";","$out"]:["$out=[];","$out.push(",");","$out.join('')"],t=q?"$out+=text;return $out;":"$out.push(text);",u="function(){var text=''.concat.apply('',arguments);"+t+"}",v="function(filename,data){data=data||$data;var text=$utils.$include(filename,data,$filename);"+t+"}",w="'use strict';var $utils=this,$helpers=$utils.$helpers,"+(g?"$line=0,":""),x=s[0],y="return new String("+s[3]+");";r(c.split(h),function(a){a=a.split(i);var b=a[0],c=a[1];1===a.length?x+=e(b):(x+=f(b),c&&(x+=e(c)))});var z=w+x+y;g&&(z="try{"+z+"}catch(e){throw {filename:$filename,name:'Render Error',message:e.message,line:$line,source:"+b(c)+".split(/\\n/)[$line-1].replace(/^\\s+/,'')};}");try{var A=new Function("$data","$filename",z);return A.prototype=n,A}catch(B){throw B.temp="function anonymous($data,$filename) {"+z+"}",B}}var d=function(a,b){return"string"==typeof b?q(b,{filename:a}):g(a,b)};d.version="3.0.0",d.config=function(a,b){e[a]=b};var e=d.defaults={openTag:"<%",closeTag:"%>",escape:!0,cache:!0,compress:!1,parser:null},f=d.cache={};d.render=function(a,b){return q(a,b)};var g=d.renderFile=function(a,b){var c=d.get(a)||p({filename:a,name:"Render Error",message:"Template not found"});return b?c(b):c};d.get=function(a){var b;if(f[a])b=f[a];else if("object"==typeof document){var c=document.getElementById(a);if(c){var d=(c.value||c.innerHTML).replace(/^\s*|\s*$/g,"");b=q(d,{filename:a})}}return b};var h=function(a,b){return"string"!=typeof a&&(b=typeof a,"number"===b?a+="":a="function"===b?h(a.call(a)):""),a},i={"<":"&#60;",">":"&#62;",'"':"&#34;","'":"&#39;","&":"&#38;"},j=function(a){return i[a]},k=function(a){return h(a).replace(/&(?![\w#]+;)|[<>"']/g,j)},l=Array.isArray||function(a){return"[object Array]"==={}.toString.call(a)},m=function(a,b){var c,d;if(l(a))for(c=0,d=a.length;d>c;c++)b.call(a,a[c],c,a);else for(c in a)b.call(a,a[c],c)},n=d.utils={$helpers:{},$include:g,$string:h,$escape:k,$each:m};d.helper=function(a,b){o[a]=b};var o=d.helpers=n.$helpers;d.onerror=function(a){var b="Template Error\n\n";for(var c in a)b+="<"+c+">\n"+a[c]+"\n\n";"object"==typeof console&&console.error(b)};var p=function(a){return d.onerror(a),function(){return"{Template Error}"}},q=d.compile=function(a,b){function d(c){try{return new i(c,h)+""}catch(d){return b.debug?p(d)():(b.debug=!0,q(a,b)(c))}}b=b||{};for(var g in e)void 0===b[g]&&(b[g]=e[g]);var h=b.filename;try{var i=c(a,b)}catch(j){return j.filename=h||"anonymous",j.name="Syntax Error",p(j)}return d.prototype=i.prototype,d.toString=function(){return i.toString()},h&&b.cache&&(f[h]=d),d},r=n.$each,s="break,case,catch,continue,debugger,default,delete,do,else,false,finally,for,function,if,in,instanceof,new,null,return,switch,this,throw,true,try,typeof,var,void,while,with,abstract,boolean,byte,char,class,const,double,enum,export,extends,final,float,goto,implements,import,int,interface,long,native,package,private,protected,public,short,static,super,synchronized,throws,transient,volatile,arguments,let,yield,undefined",t=/\/\*[\w\W]*?\*\/|\/\/[^\n]*\n|\/\/[^\n]*$|"(?:[^"\\]|\\[\w\W])*"|'(?:[^'\\]|\\[\w\W])*'|\s*\.\s*[$\w\.]+/g,u=/[^\w$]+/g,v=new RegExp(["\\b"+s.replace(/,/g,"\\b|\\b")+"\\b"].join("|"),"g"),w=/^\d[^,]*|,\d[^,]*/g,x=/^,+|,+$/g,y=/^$|,+/;e.openTag="{{",e.closeTag="}}";var z=function(a,b){var c=b.split(":"),d=c.shift(),e=c.join(":")||"";return e&&(e=", "+e),"$helpers."+d+"("+a+e+")"};e.parser=function(a){a=a.replace(/^\s/,"");var b=a.split(" "),c=b.shift(),e=b.join(" ");switch(c){case"if":a="if("+e+"){";break;case"else":b="if"===b.shift()?" if("+b.join(" ")+")":"",a="}else"+b+"{";break;case"/if":a="}";break;case"each":var f=b[0]||"$data",g=b[1]||"as",h=b[2]||"$value",i=b[3]||"$index",j=h+","+i;"as"!==g&&(f="[]"),a="$each("+f+",function("+j+"){";break;case"/each":a="});";break;case"echo":a="print("+e+");";break;case"print":case"include":a=c+"("+b.join(",")+");";break;default:if(/^\s*\|\s*[\w\$]/.test(e)){var k=!0;0===a.indexOf("#")&&(a=a.substr(1),k=!1);for(var l=0,m=a.split("|"),n=m.length,o=m[l++];n>l;l++)o=z(o,m[l]);a=(k?"=":"=#")+o}else a=d.helpers[c]?"=#"+c+"("+b.join(",")+");":"="+a}return a},"function"==typeof define?define(function(){return d}):"undefined"!=typeof exports?module.exports=d:this.template=d}();
+},{}]},{},[9]);

@@ -9,6 +9,7 @@ var config = {
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
 
+    ,'rootVar' : 'vm' //备用
     ,'DOMPrefix' : 'vm-'
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃

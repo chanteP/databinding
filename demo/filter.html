@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="zh-CN" />
+        
+        <title>filter</title>
+        
+        <script src="../build/databind.js"></script>
+        <!-- // <script src="./jquery.hammer.min.js"></script> -->
+    </head>
+    <body>
+    <!-- liquid -->
+    <!-- //filter -->
+        <p>{{1418832016164 | date:'yyyy-MM-dd hh:mm:ss'}}</p>
+        <p>{{data.array | join}}</p>
+        <p>{{data.array | map:"{\"1\":\"喝\",\"2\":\"和\",\"3\":\"何\"}" | join}}</p>
+        <script>
+        DataBind.config({
+            mode : 1,
+            debug : true,
+            initDOM : true
+        })
+        </script>
+        <pre>
+        <script>
+        var demo = new DataBind('data', {
+            string : '1,2,3',
+            array : [1,2,3,4],
+            object : {
+                a : 'abc',
+                b : 123
+            }
+        });
+        </script>
+        </pre>
+        <script type="text/javascript" >
+        var vm = DataBind.root;
+        </script>
+    </body>
+</html>

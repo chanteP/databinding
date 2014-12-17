@@ -4,19 +4,13 @@
         <meta charset="utf-8" />
         <meta http-equiv="content-language" content="zh-CN" />
         
-        <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
-        <meta content="yes" name="apple-mobile-web-app-capable" />
-        <meta content="black" name="apple-mobile-web-app-status-bar-style" />
-        <meta content="telephone=no" name="format-detection" />
+        <title>core test</title>
         
-        <title>db core test</title>
-        
-        <!--        <link rel="shortcut icon" href="/favicon.ico" /> -->
-        <!-- <link href='http://fonts.googleapis.com/css?family=Roboto:400,100' rel='stylesheet' type='text/css'> -->
         <script src="../build/databind.js"></script>
         <!-- // <script src="./jquery.hammer.min.js"></script> -->
     </head>
     <body>
+    <!-- mode config -->
         <div id="wrapper">
             mode ? accessor : vmObject
             <select id="slt">
@@ -32,10 +26,9 @@
             location.href = '?mode=' + this.value;
         }
         </script>
+    <!-- mode config end-->
         <pre>
         <script type="text/javascript" style="display:block;">
-        // var vm = DataBind.accessor();
-        mode = mode;
         /* ######################################################################
         vm : {
             a : {
@@ -50,7 +43,10 @@
             s : 1 [3000, +]
         }
         */
-        DataBind.config({mode:mode});
+        DataBind.config({
+            mode : mode
+            ,initDOM : true
+        });
         var vm = DataBind.root;
         var desc = {
             data : {

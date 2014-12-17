@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="content-language" content="zh-CN" />
+        
+        <title>expression</title>
+        
+        <script src="../build/databind.js"></script>
+        <!-- // <script src="./jquery.hammer.min.js"></script> -->
+    </head>
+    <body>
+        {{<input id="expr" value="length">}}
+        <div><p>bind<input id="bindAcc" value="a.b.c" /><p id="rs"></p></p></div>
+        <p>{{a.b}}</p>
+        <p>{{a.b.c}}</p>
+        <p>{{a.b.c.d}}</p>
+        <p>{{a.b.c.e}}</p>
+        <p>{{a.b.c.arr}}</p>
+        <p>{{a.b.c.arr.length}}</p>
+        <p>{{a.b.c.arr[1]}}</p>
+        <script>
+        DataBind.config({
+            mode : 1,
+            debug : false,
+            initDOM : true
+        })
+        </script>
+        <pre>
+        <script style="display:block;">
+        var demo = new DataBind('a.b.c', {
+            data : {},
+            d : 222,
+            e : 13,
+            arr : [1,2,3]
+        });
+        </script>
+        </pre>
+        <script type="text/javascript" >
+        var exp = DataBind.expression;
+        var vm = DataBind.root;
+
+        (expr.onkeyup = function(){
+            rs.innerHTML = exp(this.value, DataBind.get(bindAcc.value), vm);
+        })();
+
+        </script>
+    </body>
+</html>
