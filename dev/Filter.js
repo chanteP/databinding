@@ -5,6 +5,7 @@ var def = function(rs, defaultValue){
     return rs === undefined ? defaultValue : rs;
 }
 module.exports = {
+    // ###add 调试用
     debug : function(value){
         debugger
         return value;
@@ -73,12 +74,25 @@ module.exports = {
         return arr;
     },
     // size-返回一个数组或字符串的大小
+    size : function(data){
+        if(typeof data === 'number'){
+            return String(data.toString()).length;
+        }
+        if(typeof data === 'string'){
+            return String(data).length;
+        }
+        return data.length;
+    },
     // escape-转义一个字符串
     // escape_once-返回HTML的转义版本，而不会影响现有的实体转义
     // strip_html-从字符串去除HTML
     strip_html : function(str){
         // return str.replace()
         return str;
+    },
+    // ### json_stringify
+    json_stringify : function(obj){
+        return JSON.stringify(obj);
     },
     // strip_newlines -从字符串中去除所有换行符（\ n）的
     // newline_to_br-用HTML标记替换每个换行符（\ n）

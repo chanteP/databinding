@@ -14,7 +14,7 @@ ArrayExtendMethod.forEach(function(methodName){
     ArrayExtend[methodName] = function(){
         var args = [].map.call(arguments, function(arg){return arg});
         ArrayExtendProto[methodName].apply(this, args);
-        this[ArrayExtendObserveMethod]();
+        this[ArrayExtendObserveMethod](methodName);
     }
 });
 ArrayExtend.bindMethodName = ArrayExtendObserveMethod;

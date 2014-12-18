@@ -752,7 +752,7 @@ var bind = {
                 func = function(){
             //TODO if(!node.parentNode){}
                     value = parse.text(attrText, context, extraData);
-                    if(value === 'null' || value === 'undefined'){
+                    if(value === '' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
                     else{
@@ -797,8 +797,13 @@ DataBind.bindContent = main.bindContent;
 //################################################################################################################
 window.document.addEventListener('DOMContentLoaded', function(){
     if(!config.initDOM){return;}
-    main.bindContent(document.body);
-    if(config.initDOM !== 1) main.scan(document.documentElement);
+    if(typeof config.initDOM === 'string'){
+        config.initDOM === 'bind' && main.bindContent(document.body);
+        config.initDOM === 'scan' && main.scan(document.documentElement);
+    }else{
+        main.bindContent(document.body);
+        main.scan(document.documentElement);
+    }
 });
 
 
@@ -876,6 +881,7 @@ var def = function(rs, defaultValue){
     return rs === undefined ? defaultValue : rs;
 }
 module.exports = {
+    // ###add 调试用
     debug : function(value){
         debugger
         return value;
@@ -950,6 +956,10 @@ module.exports = {
     strip_html : function(str){
         // return str.replace()
         return str;
+    },
+    // ### json_stringify
+    json_stringify : function(obj){
+        return JSON.stringify(obj);
     },
     // strip_newlines -从字符串中去除所有换行符（\ n）的
     // newline_to_br-用HTML标记替换每个换行符（\ n）

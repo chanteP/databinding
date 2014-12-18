@@ -69,7 +69,7 @@ Accessor.parseProp = function(prop, context){
 Accessor.prototype.get = function(){
     return this.value;
 }
-Accessor.prototype.set = function(value, dirty, force){
+Accessor.prototype.set = function(value, dirty, force, evtData){
     var self = this;
     this.value = value;
     this.value = this.get();
@@ -80,8 +80,8 @@ Accessor.prototype.set = function(value, dirty, force){
     //children
     dirty = this.dirty || dirty;
     if(!dirty){
-        listener.fire(this.nameNS, 'set');
-        (force || value !== this.oldValue) && listener.fire(this.nameNS, 'change');
+        listener.fire(this.nameNS, 'set', evtData);
+        (force || value !== this.oldValue) && listener.fire(this.nameNS, 'change', evtData);
     }
     this.oldValue = value;
     this.dirty = false;
@@ -98,8 +98,10 @@ Accessor.prototype.set = function(value, dirty, force){
         }
         else{
             value.__proto__ = ArrayExtend;
-            value[ArrayExtend.bindMethodName] = function(){
-                self.set(value, self.dirty, true);
+            value[ArrayExtend.bindMethodName] = function(methodName){
+                self.set(value, self.dirty, true, {
+                    method : methodName
+                });
             }
         }
     }

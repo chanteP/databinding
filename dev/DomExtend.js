@@ -350,7 +350,7 @@ var bind = {
                 func = function(){
             //TODO if(!node.parentNode){}
                     value = parse.text(attrText, context, extraData);
-                    if(value === 'null' || value === 'undefined'){
+                    if(value === '' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
                     else{
@@ -395,8 +395,13 @@ DataBind.bindContent = main.bindContent;
 //################################################################################################################
 window.document.addEventListener('DOMContentLoaded', function(){
     if(!config.initDOM){return;}
-    main.bindContent(document.body);
-    if(config.initDOM !== 1) main.scan(document.documentElement);
+    if(typeof config.initDOM === 'string'){
+        config.initDOM === 'bind' && main.bindContent(document.body);
+        config.initDOM === 'scan' && main.scan(document.documentElement);
+    }else{
+        main.bindContent(document.body);
+        main.scan(document.documentElement);
+    }
 });
 
 
