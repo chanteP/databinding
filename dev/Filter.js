@@ -5,6 +5,10 @@ var def = function(rs, defaultValue){
     return rs === undefined ? defaultValue : rs;
 }
 module.exports = {
+    debug : function(value){
+        debugger
+        return value;
+    },
     // date -时间格式化| date:'yyyy-MM-dd hh:mm:ss'
     date : function (date, format) {
         date = new Date(date);

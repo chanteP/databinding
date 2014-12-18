@@ -19,6 +19,11 @@ module.exports = function(grunt) {
     },
     uglify: {
       dist: {
+        options : {
+          sourceMap : true,
+
+          banner: '/*! test */'
+        },
         files: {
           'build/databind.min.js': ['build/databind.js'],
         }
