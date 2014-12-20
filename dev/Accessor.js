@@ -69,8 +69,33 @@ Accessor.parseProp = function(prop, context){
 Accessor.prototype.get = function(){
     return this.value;
 }
-Accessor.prototype.set = function(value, dirty, force, evtData){
+Accessor.prototype.set = function(value, dirty, force){
     var self = this;
+
+    //TODO mode才绑定，等实现set数组元素再说...
+    if(Array.isArray(value)){
+        if(value !== this.value){
+            this.arrayChangeLock = false;
+        }
+        if(!this.arrayChangeLock){
+            if('observe' in Object){
+                Object.observe(value, function(changes){
+                    self.set(value, self.dirty, true);
+                });
+            }
+            else{
+                value.__proto__ = ArrayExtend;
+                value[ArrayExtend.bindMethodName] = function(methodName){
+                    self.set(value, self.dirty, true, {
+                        method : methodName
+                    });
+                }
+            }
+        }
+        this.arrayChangeLock = true;
+    }
+
+
     this.value = value;
     this.value = this.get();
 
@@ -80,33 +105,13 @@ Accessor.prototype.set = function(value, dirty, force, evtData){
     //children
     dirty = this.dirty || dirty;
     if(!dirty){
-        listener.fire(this.nameNS, 'set', evtData);
-        (force || value !== this.oldValue) && listener.fire(this.nameNS, 'change', evtData);
+        listener.fire(this.nameNS, 'set');
+        (force || value !== this.oldValue) && listener.fire(this.nameNS, 'change');
     }
     this.oldValue = value;
     this.dirty = false;
 
-    if(Array.isArray(value)){
-        var arrayChangeLock = false;
-        //TODO 好挫！！！
-        if('observe' in Object){
-            Object.observe(value, function(changes){
-                if(arrayChangeLock){return;}
-                arrayChangeLock = true;
-                self.set(value, self.dirty, true);
-            });
-        }
-        else{
-            value.__proto__ = ArrayExtend;
-            value[ArrayExtend.bindMethodName] = function(methodName){
-                self.set(value, self.dirty, true, {
-                    method : methodName
-                });
-            }
-        }
-    }
-    //TODO 其实楼上也要！mode才绑定，等实现set数组元素再说...
-    else if(!config.mode && $.isSimpleObject(value)){
+    if(!config.mode && $.isSimpleObject(value)){
         for(var key in value){
             if(!value.hasOwnProperty(key)){continue;}
             childAcc = Accessor(this.parseProp(key));

@@ -1,7 +1,6 @@
 var $ = {};
 module.exports = $;
 var config = require('./config');
-// require('./jquery.hammer.min');
 
 $.objMerger = function(type, args){
     var hold = false, rsObj, curObj;

@@ -15,15 +15,18 @@ var $ = require('./kit');
 var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
 var prefix = config.DOMPrefix;
 var marker = {
-    'model' : prefix + 'model',//v to m
-    'list' : prefix + 'list',//list: tr in table
-    'bind' : prefix + 'bind',//scope源
-    'escape' : prefix + 'escape',//scan外
-    'toggle' : prefix + 'toggle',
-    'extraData' : prefix + 'extraExpData' //传给expression的额外数据
+    'model' : prefix + 'model'//v to m
+    ,'list' : prefix + 'list'//list: tr in table
+    ,'bind' : prefix + 'bind'//scope源
+    ,'escape' : prefix + 'escape'//scan外
+    ,'toggle' : prefix + 'toggle'
+    ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
+    ,'boundAttr' : prefix + 'boundAttr' //已经绑定的attr&原值
+    ,'boundText' : prefix + 'boundText' //已经绑定的text&原值
+    ,'boundProp' : prefix + 'boundProp' //已经绑定的props
 }
-var indexPreg = /\[(\d+)\]$/;
-var listPreg = /([\w\.]+)\s+in\s+([\w\.]+)/;
+var listPreg = /([\w\.]+)\s+in\s+([\w\.]+)/,
+    numberPreg = /^[\d\.]+$/;
 var nodeFuncKey = 'bindObserver';
 var checkProp, checkType = 'change';
 var scanQueue = [];
@@ -126,13 +129,54 @@ var main = {
         }
         //其他节点管来干嘛
     },
-    'addScanFunc' : function(prop, func){
-        if(!checkProp[prop]){
-            checkProp[prop] = [];
+    'addScanFunc' : function(props, func){
+        props.forEach(function(prop){
+            if(!checkProp[prop]){
+                checkProp[prop] = [];
+            }
+            checkProp[prop].push(func);
+        });
+    },
+    'checkResycle' : function(node){
+        if(!contains(document.documentElement, node)){
+            for(var prop in node[marker.boundProp]){
+                node[marker.boundProp][prop].forEach(function(func){
+                    unobserve(prop, func, checkType);
+                });
+            }
+            return true;
         }
-        checkProp[prop].push(func);
     }
 };
+var subFunc = {
+    //list: tr to table 替换
+    templateFunc : function(template, index, writeProp, useProp){
+        var listExpPreg = new RegExp(expPreg.source, 'mg'),
+            fieldPreg = new RegExp('(?:\\s|\\b)('+writeProp+'\\.)', 'mg');
+        return template.replace(listExpPreg, function(match, exp){
+            return match.replace(fieldPreg, function(match, matchContext){
+                return ' ' + useProp + '['+index+'].';
+            });
+        });
+    },
+    initBoundNode : function(node, deps, func, text, value){
+        node[marker.boundAttr] = node[marker.boundAttr] || {};
+        // node[marker.boundText] = textContent;
+        node[marker.boundProp] = node[marker.boundProp] || {};
+
+        //isAttr
+        if(value){
+            node[marker.boundAttr][text] = value;
+        }
+        else{
+            node[marker.boundText] = text;
+        }
+        deps.forEach(function(dep){
+            node[marker.boundProp][dep] = node[marker.boundProp][dep] || [];
+            node[marker.boundProp][dep].push(func);
+        });
+    }
+}
 var check = {
     /*
         void check attribute中是否有表达式并绑定
@@ -186,12 +230,12 @@ var parse = {
     /*
         Object extraData
     */
-    'extraData' : function(node){
-        if(node[marker.extraData]){
-            return node[marker.extraData];
-        }
-        return node.parentNode ? parse.extraData(node.parentNode) : undefined;
-    },
+    // 'extraData' : function(node){
+    //     if(node[marker.extraData]){
+    //         return node[marker.extraData];
+    //     }
+    //     return node.parentNode ? parse.extraData(node.parentNode) : undefined;
+    // },
     /*
         String 根据表达式解析text
     */
@@ -206,21 +250,25 @@ var parse = {
     /*
         String 获取节点绑定的context scope
     */
-    'context' : function(node){
+    'context' : function(node, self){
+        //优化，
+        if(node[marker.extraData] && !self[marker.extraData]){
+            self[marker.extraData] = node[marker.extraData];
+        }
         if(node[marker.bind]){
             return node[marker.bind];
         }
         if(node.getAttribute && node.getAttribute(marker.bind)){
             return node.getAttribute(marker.bind);
         }
-        return node.parentNode ? parse.context(node.parentNode) : '';
+        return node.parentNode ? parse.context(node.parentNode, self) : '';
     }
 };
 //data to dom
 var bind = {
     'model' : function(e){
         var type = this.type, name = this.name, tagName = this.tagName.toLowerCase();
-        var model = this.getAttribute(marker.model), context = parse.context(this);
+        var model = this.getAttribute(marker.model), context = parse.context(this, this);
         var value = '', form = this.form || document.body, rs;
         this[marker.bind] = context;
 
@@ -251,57 +299,46 @@ var bind = {
         else{
             value = this.value;
         }
-        if(!isNaN(value)){
+        if(!isNaN(value) && numberPreg.test(value)){
             value = +value;
         }
         set(model, value);
     },
     'list' : function(node, propGroup){
         var template = node.outerHTML;
-        var context = parse.context(node);
+        var context = parse.context(node, node);
         node[marker.bind] = context;
 
         var writeProp = propGroup[0],
             useProp = propGroup[1];
 
-        //list: tr to table 替换
-        var templateFunc = function(template, index, writeProp, useProp){
-            var listExpPreg = new RegExp(expPreg.source, 'mg'),
-                fieldPreg = new RegExp('(?:\\s|\\b)('+writeProp+'\\.)', 'mg');
-            return template.replace(listExpPreg, function(match, exp){
-                return match.replace(fieldPreg, function(match, matchContext){
-                    return ' ' + useProp + '['+index+'].';
-                });
-            });
-        }
-
-        var prop = (context ? context + '.' + useProp : useProp);
+        var prop = DataBind.parseProp(useProp, context);
 
         //TODO 备用标注
-        var listMarkEnd = document.createComment('list for ' + useProp + ' as ' + writeProp + 'end'),
+        var listMarkEnd = document.createComment('list for ' + useProp + ' as ' + writeProp + ' end'),
+        // var listMarkEnd = document.createElement('script'),
             listMarkStart = document.createComment('list for ' + useProp + ' as ' + writeProp + 'start'),
             listNodeCollection = [];
 
         node.parentNode.insertBefore(listMarkStart, node);
         node.parentNode.replaceChild(listMarkEnd, node);
-        main.addScanFunc(prop, function(v, ov, e){
+
+        main.addScanFunc([prop], function(v, ov, e){
             if(!listMarkEnd.parentNode){return;}
             var list = get(prop);
             if(!(Array.isArray(list))){return;}
             var content = listMarkEnd.parentNode;
             //TODO 增强array功能后这里就不用全部删了再加了
-            [].forEach.call(listNodeCollection, function(element){
+            listNodeCollection.forEach(function(element){
                 remove(element);
             });
+            listNodeCollection.length = 0;
             list.forEach(function(dataElement, index){
-                var element = create(templateFunc(template, index, writeProp, useProp));
+                var element = create(subFunc.templateFunc(template, index, writeProp, useProp));
                 element[marker.extraData] = {
                     index : index,
                     value : dataElement
                 };
-                // var scope = Object.create(dataElement, {index:{value:index}});
-                // element.setAttribute(marker.bind, prop + '['+index+']');
-                // element[marker.bind] = prop + '['+index+']';
                 content.insertBefore(element, listMarkEnd);
                 listNodeCollection.push(element);
                 main.scan(element);
@@ -310,45 +347,44 @@ var bind = {
     },
     //node attribute
     'attr' : function(node, attrText, attrName){
-        var context = parse.context(node), deps = parse.deps(attrText, context), func;
-        node[marker.bind] = context;
-        var extraData = parse.extraData(node);
+        var context = parse.context(node, node), deps = parse.deps(attrText, context), func;
+        var extraData = node[marker.extraData];
 
         switch (attrName){
             case 'checked' : 
                 var checkValue = node.value;
                 func = node.type === 'checkbox' ? 
                 function(value){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     node.checked = (value || '').split(',').indexOf(checkValue) >= 0;
                 } : 
                 function(value){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     node.checked = value === checkValue;
                 };
                 break;
             case 'selected' : 
                 var checkValue = node.value;
                 func = function(value){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     node.selected = value === checkValue;
                 };
                 break;
             case 'value' : 
                 func = function(){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     node.value = parse.text(attrText, context, extraData);
                 }
                 break;
             case 'data-src' : 
                 func = function(){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     node.src = parse.text(attrText, context, extraData);
                 }
                 break;
             default : 
                 func = function(){
-            //TODO if(!node.parentNode){}
+                    if(main.checkResycle(node)){return;}
                     value = parse.text(attrText, context, extraData);
                     if(value === '' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
@@ -359,36 +395,27 @@ var bind = {
                 }
                 break;
         }
-        deps.forEach(function(prop){
-            main.addScanFunc(prop, func);
-        });
+        subFunc.initBoundNode(node, deps, func, attrName, attrText);
+
+        main.addScanFunc(deps, func);
     },
     //textNode
     'text' : function(node, textContent){
-        var context = parse.context(node), deps = parse.deps(textContent, context), func;
-        node[marker.bind] = context;
+        var context = parse.context(node, node), deps = parse.deps(textContent, context), func;
+        // node[marker.bind] = context;
         var exchangeNode = node;
-        var extraData = parse.extraData(node);
+        // var extraData = parse.extraData(node);
+        var extraData = node[marker.extraData];
+
         func = function(v, ov, e){
-            if(e && !contains(document.documentElement, node)){
-                unobserve(e.nameNS, func, checkType);
-                return;
-            }
-            if(v instanceof Node){exchangeNode = bind.element(exchangeNode, v);}
-            else if(ov instanceof Node){exchangeNode = bind.element(exchangeNode, node);}
+            if(main.checkResycle(node)){return;}
             node.textContent = parse.text(textContent, context, extraData);
         }
-        deps.forEach(function(prop){
-            main.addScanFunc(prop, func);
-        });
-    },
-    'element' : function(oldElement, newElement){
-        if(!oldElement.parentNode){return oldElement;}
-        oldElement.parentNode.replaceChild(newElement, oldElement);
-        DataBind.scan(newElement);
-        return newElement;
+        subFunc.initBoundNode(node, deps, func, textContent);
+
+        main.addScanFunc(deps, func);
     }
-}
+};
 //################################################################################################################
 DataBind.scan = main.scan;
 DataBind.bindContent = main.bindContent;

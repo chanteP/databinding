@@ -7,9 +7,9 @@ var DataBind = require('./DataBind');
 var $ = require('./kit');
 var config = require('./config');
 
-// var artTemplate = window.template = require('art-template');
 //....默认打上debug...只能。。
-var artTemplate = window.template = require('../node_modules/art-template/dist/template.js');
+
+var artTemplate = window.template = require('art-template');
 var filters = require('./Filter');
 var merge = $.merge;
 
@@ -19,6 +19,9 @@ var rootVar = config.rootVar, rootVarLen = String(rootVar).length;
 var log = $.log;
 var get = DataBind.get;
 //################################################################################################################
+artTemplate.onerror = function(e){
+    log('Expression.artTemplate', e.message, 'warn');
+}
 var parseDeps = function(expressionText, context){
     var expression = getExpressionPart(expressionText);
     var reg = /(?=\b|\.|\[)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;

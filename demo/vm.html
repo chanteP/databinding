@@ -12,7 +12,7 @@
     <body>
         <div id="wrapper">
         <div>
-            <input vm-model="calc.p1">+<input vm-model="calc.p2">=<span>{{calc.p1 - calc.p2}}</span>=<span>{{calc.p3}}</span>
+            <input vm-model="calc.p1">+<input vm-model="calc.p2">=<span>{{calc.p1-calc.p2 }}</span>=<span>{{calc.p3}}</span>
         </div>
         <form vm-bind="form">
             <div>
@@ -21,7 +21,7 @@
             </div>
             <div>
                 <select value="{{select}}" vm-model="select">
-                    <option vm-bind="form" vm-list="tr in table" value="{{tr.id}}" selected="{{tr.id}}" index="$.index">{{tr.name}}</option>
+                    <option vm-bind="form" vm-list="tr in table" value="{{tr.id}}" selected="{{tr.id}}" index="{{$.index}}">{{tr.name}}</option>
                 </select>
                 <span>{{select}}</span>
             </div>
@@ -42,16 +42,16 @@
         </div>
         <hr >
         <div id="info" vm-bind="form">
-            <p>{{name['length']}}</p>
+            <p>{{name | size}}</p>
             <p>姓名是{{name == '' ? '无' : name}}, {{sex == 'male' ? '基佬' : '妹纸'}}, 职业 {{job | split | map:"{\"m\":\"法师\",\"s\":\"剑士\"}" | join }}</p>
             <p>{{intro | append}}</p><span style="display:{{intro.length > 16 ? 'block' : 'none'}};color:#c00;">超过16个字了卧槽</span>
-        </div>-->
-        <div>{{form.table.length}}</div>
+        </div>
+        <div>{{form.table | size}}</div>
         <button id="tableP">+</button>
         <button id="tableM">-</button>
         <table vm-bind="form">
             <tr vm-list="tr in table">
-                <td>{{$.index}} & {{sex == 'male' ? '基佬' : '妹纸'}}</td>
+                <td>{{$.index}} & {{sex == 'male' ? '基佬' : '妹纸'}} & {{name}}</td>
                 <td>{{tr.name}}</td>
                 <td>{{tr.id}}</td>
             </tr>
@@ -84,13 +84,13 @@
                 job : 's',
                 intro : '123123123cfd',
                 select : '',
-                table : [
-                    newL(),
-                    newL(),
-                    newL(),
-                    newL(),
-                    newL()
-                ],
+                table : (function(num){
+                    var arr = [];
+                    while(num--){
+                        arr.push(newL())
+                    }
+                    return arr
+                })(50),
                 $change : function(value, ov, e){
                     // console.log('change',value, ov, e)
                     // document.getElementById('formData').innerHTML = JSON.stringify(vm.form);

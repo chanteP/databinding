@@ -45,13 +45,22 @@ module.exports = {
     // downcase-将输入的字符串转换为小写*
     // upcase-将输入的字符串转换为大写
     // first-获得传入的数组的第一个元素
-    first : function(arr){
-        return arr[0];
+    // first : function(arr){
+    //     return arr[0];
+    // },
+    // ###item:获取第n个元素,支持负数
+    item : function(arr, index){
+        if(index >= 0){
+            return arr[index];
+        }
+        else{
+            return arr[arr.length + index];
+        }
     },
     // last-获得传入的数组的最后一个元素
-    last : function(arr){
-        return arr[arr.length?arr.length-1:0];
-    },
+    // last : function(arr){
+    //     return arr[arr.length?arr.length-1:0];
+    // },
     // join-用数组的分隔符连接数组中的元素
     join : function(arr, joinMark){
         return arr.join(joinMark);
@@ -104,22 +113,22 @@ module.exports = {
     // remove-删除，例如：{{'foobarfoobar' | remove:'foo' }} #=> 'barbar'
     // remove_first-删除第一个，例如：{{ 'barbar' | remove_first:'bar' }} #=> 'bar'
     // truncate-截取字符串到第x个字符
-    truncate : function(str, length){
-        return str.slice(0, length);
-    },
+    // truncate : function(str, length){
+    //     return str.slice(0, length);
+    // },
     // slice-截取字符串第x个到第x个字符
     slice : function(str, fromIndex, toIndex){
         return str.slice(fromIndex, def(toIndex, undefined));
     },
     // truncatewords-截取字符串到第x个词
     // prepend-前置添加字符串，例如：{{ 'bar' | prepend:'foo' }} #=> 'foobar'
-    prepend : function(str, appendString){
-        return def(prependString, '...') + str;
-    },
+    // prepend : function(str, appendString){
+    //     return def(prependString, '...') + str;
+    // },
     // append-后置追加字符串，例如：{{'foo' | append:'bar' }} #=> 'foobar'
-    append : function(str, appendString){
-        return str + def(appendString, '...');
-    },
+    // append : function(str, appendString){
+    //     return str + def(appendString, '...');
+    // },
     // minus-减法，例如：{{ 4 | minus:2 }} #=> 2
     minus : function(rs, num){
         return rs - num;

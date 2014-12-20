@@ -174,9 +174,7 @@ DataBind.parseProp      = Accessor.parseProp;
 DataBind.check          = function(nameNS){
     return Accessor(nameNS);
 }
-DataBind.checkListener  = function(nameNS, type){
-    return listener.check(nameNS, type);
-}
+DataBind.listeners      = listener.topic;
 DataBind.get            = function(nameNS){
     var index, value;
     if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){
@@ -202,9 +200,6 @@ DataBind.prototype.set  = function(propNS, value, dirty){
 }
 DataBind.prototype.setPropagation = function(bool, type){
     return DataBind.setPropagation(main.parseNS(this._name, propNS), bool, type);
-};
-DataBind.prototype.checkListener = function(propNS, type){
-    return DataBind.checkListener(main.parseNS(this._name, propNS), type);
 };
 DataBind.prototype.observe = function(propNS, func, evt){
     return DataBind.observe(main.parseNS(this._name, propNS), func, evt);

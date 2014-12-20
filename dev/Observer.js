@@ -26,11 +26,10 @@ var listener = {
         listener._getFireProps(nameNS, type);
         listener._fireList = unique(listener._fireList);
 
-        var evtList, acc, ns, args;
-        for(var i = 0, j = listener._fireList.length; i < j; i++){
-            ns = listener._fireList[i];
+        var evtList, acc, args;
+        listener._fireList.forEach(function(ns){
             evtList = listener.check(ns, type);
-            if(!evtList){continue;}
+            if(!evtList){return;}
             acc = Accessor(ns);
             args = [acc.value, acc.oldValue, {
                 type:type, 
@@ -41,11 +40,11 @@ var listener = {
                 propNS:acc.nameNS
             }];
             args[2] = merge(args[2], extArgs);
-            evtList.forEach(function(func){
-                if(typeof func !== 'function'){return;}
-                func.apply(acc.context, args);
-            });
-        }
+            for(var i = evtList.length - 1; i >= 0; i--){
+                if(typeof evtList[i] !== 'function'){return;}
+                evtList[i].apply(acc.context, args);
+            }
+        });
         listener._fireList = null;
         return this;
     },
