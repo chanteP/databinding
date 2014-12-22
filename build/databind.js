@@ -756,28 +756,42 @@ var bind = {
 
         switch (attrName){
             case 'checked' : 
-                var checkValue = node.value;
                 func = node.type === 'checkbox' ? 
                 function(value){
                     if(main.checkResycle(node)){return;}
-                    node.checked = (value || '').split(',').indexOf(checkValue) >= 0;
+                    if(value === 'true' || value === 'false'){
+                        node.checked = value === 'true' ? true : false;
+                        return;
+                    }
+                    node.checked = (value || '').split(',').indexOf(node.value) >= 0;
                 } : 
                 function(value){
                     if(main.checkResycle(node)){return;}
-                    node.checked = value === checkValue;
+                    if(value === 'true' || value === 'false'){
+                        node.checked = value === 'true' ? true : false;
+                        return;
+                    }
+                    node.checked = value === node.value;
                 };
+                node.removeAttribute('checked');
                 break;
             case 'selected' : 
-                var checkValue = node.value;
                 func = function(value){
                     if(main.checkResycle(node)){return;}
-                    node.selected = value === checkValue;
+                    if(value === 'true' || value === 'false'){
+                        node.checked = value === 'true' ? true : false;
+                        return;
+                    }
+                    node.selected = value === node.value;
                 };
+                node.removeAttribute('selected');
                 break;
             case 'value' : 
-                func = function(){
+                func = function(value){
                     if(main.checkResycle(node)){return;}
-                    node.value = parse.text(attrText, context, extraData);
+                    value = parse.text(attrText, context, extraData);
+                    node.setAttribute('value', value);
+                    node.value = value;
                 }
                 break;
             case 'data-src' : 
@@ -790,7 +804,7 @@ var bind = {
                 func = function(){
                     if(main.checkResycle(node)){return;}
                     value = parse.text(attrText, context, extraData);
-                    if(value === '' || value === 'null' || value === 'undefined'){
+                    if(value === '' || value === 'false' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
                     else{
@@ -917,6 +931,20 @@ module.exports = {
     debug : function(value){
         debugger
         return value;
+    },
+    // ###toBool 输出修正拳
+    toBool : function(value){
+        return !!value;
+    },
+    // ###toString 输出修正拳
+    toString : function(value){
+        if(typeof value === 'string'){
+            return value;
+        }
+        if(value !== null && value !== undefined){
+            return value.toString();
+        }
+        return '';
     },
     // date -时间格式化| date:'yyyy-MM-dd hh:mm:ss'
     date : function (date, format) {

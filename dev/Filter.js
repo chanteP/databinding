@@ -10,6 +10,20 @@ module.exports = {
         debugger
         return value;
     },
+    // ###toBool 输出修正拳
+    toBool : function(value){
+        return !!value;
+    },
+    // ###toString 输出修正拳
+    toString : function(value){
+        if(typeof value === 'string'){
+            return value;
+        }
+        if(value !== null && value !== undefined){
+            return value.toString();
+        }
+        return '';
+    },
     // date -时间格式化| date:'yyyy-MM-dd hh:mm:ss'
     date : function (date, format) {
         date = new Date(date);

@@ -1,6 +1,6 @@
 {
   "name": "np-databind",
-  "version": "0.3.5",
+  "version": "0.3.9",
   "description": "测试用双向绑定，单向用也大丈夫。with artTemplate",
   "keywords": "",
   "main": "index.js",
