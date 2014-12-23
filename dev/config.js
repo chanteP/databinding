@@ -11,6 +11,8 @@ var config = {
 
     ,'rootVar' : 'vm' //备用
     ,'DOMPrefix' : 'vm-'
+    ,'checkNode' : null //爬dom树中断判断
+
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
     ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan

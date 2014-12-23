@@ -109,6 +109,9 @@ var main = {
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
+
+            //外部处理
+            if(config.checkNode && config.checkNode(node)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
             //节点包含{{}}
