@@ -61,11 +61,11 @@
         <script type="text/javascript">
             DataBind.config({
                 mode:0,
+                debug : true,
                 initDOM:true,
                 DOMPrefix:'vm-'
             })
             var vm = DataBind.root;
-            // var exp = DataBind.expression;
 
             var newL = function(){
                 return {
@@ -90,12 +90,7 @@
                         arr.push(newL())
                     }
                     return arr
-                })(50),
-                $change : function(value, ov, e){
-                    // console.log('change',value, ov, e)
-                    // document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
-                    // console.log(JSON.stringify(vm.form));
-                }
+                })(20)
             };
 
             new DataBind('form', formData)

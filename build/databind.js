@@ -489,7 +489,7 @@ var main = {
             return;
         }
         checkProp = {};
-        main.parseNode(node || document.body);
+        main.parseNode(node || document.body, node || document.body);
         var value;
         for(var prop in checkProp){
             value = get(prop);
@@ -498,7 +498,6 @@ var main = {
                 func(value, value);
                 parseOnlyWhileScan || observe(prop, func, checkType);
             });
-
         }
         checkProp = null;
         if(scanQueue.length){
@@ -509,17 +508,17 @@ var main = {
     /*
         TODO 堆scope
     */
-    'parseNode' : function(node, scope){
+    'parseNode' : function(node, originNode){
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
 
             //外部处理
-            if(config.checkNode && config.checkNode(node)){return;}
+            if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
             //节点包含{{}}
-            if(!expPreg.test(html)){return;}
+            if(!expPreg.test(html) && html.indexOf(marker.list) < 0){return;}
             //解析attr
             check.attr(node, html);
 
@@ -911,6 +910,10 @@ var expression = function(expressionText, scope, rootScope, extraData){
         root,
         {$:extraData}
     ));
+    if(rs === '{Template Error}'){
+        rs = '';
+        log('databind.expression', 'template error', 'error');
+    }
     return rs;
 }
 //################################################################################################################
@@ -1061,13 +1064,13 @@ module.exports = {
     },
     // truncatewords-截取字符串到第x个词
     // prepend-前置添加字符串，例如：{{ 'bar' | prepend:'foo' }} #=> 'foobar'
-    // prepend : function(str, appendString){
-    //     return def(prependString, '...') + str;
-    // },
+    prepend : function(str, appendString){
+        return def(prependString, '...') + str;
+    },
     // append-后置追加字符串，例如：{{'foo' | append:'bar' }} #=> 'foobar'
-    // append : function(str, appendString){
-    //     return str + def(appendString, '...');
-    // },
+    append : function(str, appendString){
+        return str + def(appendString, '...');
+    },
     // minus-减法，例如：{{ 4 | minus:2 }} #=> 2
     minus : function(rs, num){
         return rs - num;

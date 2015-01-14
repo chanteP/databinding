@@ -85,7 +85,7 @@ var main = {
             return;
         }
         checkProp = {};
-        main.parseNode(node || document.body);
+        main.parseNode(node || document.body, node || document.body);
         var value;
         for(var prop in checkProp){
             value = get(prop);
@@ -94,7 +94,6 @@ var main = {
                 func(value, value);
                 parseOnlyWhileScan || observe(prop, func, checkType);
             });
-
         }
         checkProp = null;
         if(scanQueue.length){
@@ -105,17 +104,17 @@ var main = {
     /*
         TODO 堆scope
     */
-    'parseNode' : function(node, scope){
+    'parseNode' : function(node, originNode){
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
 
             //外部处理
-            if(config.checkNode && config.checkNode(node)){return;}
+            if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
             //节点包含{{}}
-            if(!expPreg.test(html)){return;}
+            if(!expPreg.test(html) && html.indexOf(marker.list) < 0){return;}
             //解析attr
             check.attr(node, html);
 
