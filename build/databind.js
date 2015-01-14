@@ -422,6 +422,7 @@ var marker = {
     'model' : prefix + 'model'//v to m
     ,'list' : prefix + 'list'//list: tr in table
     ,'bind' : prefix + 'bind'//scope源
+    ,'if'   : prefix + 'if'//条件判断
     ,'escape' : prefix + 'escape'//scan外
     ,'toggle' : prefix + 'toggle'
     ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
@@ -515,6 +516,8 @@ var main = {
 
             //外部处理
             if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
+            //if判断
+            if(check.condition(node)){return;}
             //是list则放弃治疗
             if(check.list(node)){return;}
             //节点包含{{}}
@@ -543,7 +546,7 @@ var main = {
             checkProp[prop].push(func);
         });
     },
-    'checkResycle' : function(node){
+    'checkRecycle' : function(node){
         if(!contains(document.documentElement, node)){
             for(var prop in node[marker.boundProp]){
                 node[marker.boundProp][prop].forEach(function(func){
@@ -604,6 +607,18 @@ var check = {
             node.removeAttribute(marker.list);
             listProp.shift();
             bind.list(node, listProp);
+            return true;
+        }
+    },
+    /*
+        boolean check 是否为if条件节点，并绑定
+    */
+    'condition' : function(node){
+        var ifProp;
+        ifProp = node.getAttribute(marker.if);
+        if(typeof ifProp === 'string'){
+            node.removeAttribute(marker.if);
+            bind.condition(node, ifProp);
             return true;
         }
     }
@@ -710,6 +725,24 @@ var bind = {
         }
         set(model, value);
     },
+    'condition' : function(node, conditionProp){
+        var conditionMark = document.createComment('condition for ' + conditionProp);
+        var context = parse.context(node, node);
+        deps = parse.deps(conditionProp, context);
+        main.addScanFunc(deps, function(v, ov, e){
+            //TODO recycle
+            if(!node.parentNode && !conditionMark.parentNode){
+                return;
+            }
+            var value = parse.text(conditionProp, context);
+            if(value && !node.parentNode){
+                conditionMark.parentNode.replaceChild(node, conditionMark);
+            }
+            else if(!value && !conditionMark.parentNode){
+                node.parentNode.replaceChild(conditionMark, node);
+            }
+        });
+    },
     'list' : function(node, propGroup){
         var template = node.outerHTML;
         var context = parse.context(node, node);
@@ -760,7 +793,7 @@ var bind = {
             case 'checked' : 
                 func = node.type === 'checkbox' ? 
                 function(value){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     if(value === 'true' || value === 'false'){
                         node.checked = value === 'true' ? true : false;
                         return;
@@ -768,7 +801,7 @@ var bind = {
                     node.checked = (value || '').split(',').indexOf(node.value) >= 0;
                 } : 
                 function(value){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     if(value === 'true' || value === 'false'){
                         node.checked = value === 'true' ? true : false;
                         return;
@@ -779,7 +812,7 @@ var bind = {
                 break;
             case 'selected' : 
                 func = function(value){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     if(value === 'true' || value === 'false'){
                         node.checked = value === 'true' ? true : false;
                         return;
@@ -790,7 +823,7 @@ var bind = {
                 break;
             case 'value' : 
                 func = function(value){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     value = parse.text(attrText, context, extraData);
                     node.setAttribute('value', value);
                     node.value = value;
@@ -798,13 +831,13 @@ var bind = {
                 break;
             case 'data-src' : 
                 func = function(){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     node.src = parse.text(attrText, context, extraData);
                 }
                 break;
             default : 
                 func = function(){
-                    if(main.checkResycle(node)){return;}
+                    if(main.checkRecycle(node)){return;}
                     value = parse.text(attrText, context, extraData);
                     if(value === '' || value === 'false' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
@@ -828,7 +861,7 @@ var bind = {
         var extraData = node[marker.extraData];
 
         func = function(v, ov, e){
-            if(main.checkResycle(node)){return;}
+            if(main.checkRecycle(node)){return;}
             node.textContent = parse.text(textContent, context, extraData);
         }
         subFunc.initBoundNode(node, deps, func, textContent);
@@ -912,7 +945,6 @@ var expression = function(expressionText, scope, rootScope, extraData){
     ));
     if(rs === '{Template Error}'){
         rs = '';
-        log('databind.expression', 'template error', 'error');
     }
     return rs;
 }

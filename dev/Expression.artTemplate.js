@@ -56,7 +56,6 @@ var expression = function(expressionText, scope, rootScope, extraData){
     ));
     if(rs === '{Template Error}'){
         rs = '';
-        log('databind.expression', 'template error', 'error');
     }
     return rs;
 }

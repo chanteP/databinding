@@ -17,7 +17,7 @@
         <form vm-bind="form">
             <div>
                 <label>姓名</label><input name="name" vm-model="name" value="{{name}}">
-                <span style="display:{{name['length'] >= 12 ? 'block' : 'none'}};color:#c00;">名字哪有那么长的啊</span>
+                <!-- <span style="display:{{name['length'] | toString}};color:#c00;">名字哪有那么长的啊</span> -->
             </div>
             <div>
                 <select value="{{select}}" vm-model="select">
