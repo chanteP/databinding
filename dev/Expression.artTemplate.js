@@ -54,6 +54,9 @@ var expression = function(expressionText, scope, rootScope, extraData){
         root,
         {$:extraData}
     ));
+    if(rs === '{Template Error}'){
+        rs = '';
+    }
     return rs;
 }
 //################################################################################################################

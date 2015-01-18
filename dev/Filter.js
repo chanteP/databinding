@@ -10,6 +10,20 @@ module.exports = {
         debugger
         return value;
     },
+    // ###toBool 输出修正拳
+    toBool : function(value){
+        return !!value;
+    },
+    // ###toString 输出修正拳
+    toString : function(value){
+        if(typeof value === 'string'){
+            return value;
+        }
+        if(value !== null && value !== undefined){
+            return value.toString();
+        }
+        return '';
+    },
     // date -时间格式化| date:'yyyy-MM-dd hh:mm:ss'
     date : function (date, format) {
         date = new Date(date);
@@ -122,13 +136,13 @@ module.exports = {
     },
     // truncatewords-截取字符串到第x个词
     // prepend-前置添加字符串，例如：{{ 'bar' | prepend:'foo' }} #=> 'foobar'
-    // prepend : function(str, appendString){
-    //     return def(prependString, '...') + str;
-    // },
+    prepend : function(str, appendString){
+        return def(prependString, '...') + str;
+    },
     // append-后置追加字符串，例如：{{'foo' | append:'bar' }} #=> 'foobar'
-    // append : function(str, appendString){
-    //     return str + def(appendString, '...');
-    // },
+    append : function(str, appendString){
+        return str + def(appendString, '...');
+    },
     // minus-减法，例如：{{ 4 | minus:2 }} #=> 2
     minus : function(rs, num){
         return rs - num;

@@ -18,7 +18,7 @@
         <form vm-bind="form">
             <div>
                 <label>姓名</label><input name="name" vm-model="name" value="{{name}}">
-                <span style="display:{{name['length'] >= 12 ? 'block' : 'none'}};color:#c00;">名字哪有那么长的啊</span>
+                <!-- <span style="display:{{name['length'] | toString}};color:#c00;">名字哪有那么长的啊</span> -->
             </div>
             <div>
                 <select value="{{select}}" vm-model="select">
@@ -62,11 +62,11 @@
         <script type="text/javascript">
             DataBind.config({
                 mode:0,
+                debug : true,
                 initDOM:true,
                 DOMPrefix:'vm-'
             })
             var vm = DataBind.root;
-            // var exp = DataBind.expression;
 
             var newL = function(){
                 return {
@@ -91,7 +91,7 @@
                         arr.push(newL())
                     }
                     return arr
-                })(50)
+                })(20)
             };
 
             new DataBind('form', formData)
@@ -111,8 +111,11 @@
             }
             // DataBind.scan(document.documentElement, 1)
             console.log(formData)
+            var tmp = cur;
             setInterval(function(){
                 vm.timestamp = ((Date.now() - cur) / 1000).toFixed(1);
+                console.log(Date.now() - tmp);
+                tmp = Date.now();
             }, 50);
 
         </script>
