@@ -11,6 +11,7 @@
     </head>
     <body>
         <div id="wrapper">
+        <div>{{timestamp}}</div>
         <div>
             <input vm-model="calc.p1">+<input vm-model="calc.p2">=<span>{{calc.p1-calc.p2 }}</span>=<span>{{calc.p3}}</span>
         </div>
@@ -90,12 +91,7 @@
                         arr.push(newL())
                     }
                     return arr
-                })(50),
-                $change : function(value, ov, e){
-                    // console.log('change',value, ov, e)
-                    // document.getElementById('formData').innerHTML = JSON.stringify(vm.form);
-                    // console.log(JSON.stringify(vm.form));
-                }
+                })(50)
             };
 
             new DataBind('form', formData)
@@ -104,6 +100,8 @@
                     return +this.p1 + +this.p2;
                 }
             });
+            var cur = Date.now();
+            new DataBind('timestamp', cur);
 
             tableP.onclick = function(){
                 formData.table.push(newL())
@@ -113,6 +111,9 @@
             }
             // DataBind.scan(document.documentElement, 1)
             console.log(formData)
+            setInterval(function(){
+                vm.timestamp = ((Date.now() - cur) / 1000).toFixed(1);
+            }, 50);
 
         </script>
     </body>
