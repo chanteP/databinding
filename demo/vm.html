@@ -11,6 +11,7 @@
     </head>
     <body>
         <div id="wrapper">
+        <div>{{form.abc.a}}</div>
         <div>{{timestamp}}</div>
         <div>
             <input vm-model="calc.p1">+<input vm-model="calc.p2">=<span>{{calc.p1-calc.p2 }}</span>=<span>{{calc.p3}}</span>
@@ -81,6 +82,9 @@
                         return v.length > 12 ? v.slice(0, 12) : v;
                     }
                 },
+                abc : {
+                    a : 1
+                },
                 sex : 'female',
                 job : 's',
                 intro : '123123123cfd',
@@ -114,7 +118,7 @@
             var tmp = cur;
             setInterval(function(){
                 vm.timestamp = ((Date.now() - cur) / 1000).toFixed(1);
-                console.log(Date.now() - tmp);
+                // console.log(Date.now() - tmp);
                 tmp = Date.now();
             }, 50);
 
