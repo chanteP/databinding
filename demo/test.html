@@ -6,45 +6,18 @@
 </head>
 <body>
 <div>
-    <div id="span" vm-bind="b">
-        {{d.e.g}}
-
-        <span id="span" vm-bind="a" title="{{c}}">{{c}}</span>
-
-    </div>
-
+    <div id="span">{{value |size}}</div>
+    <input vm-model="value" value="{{value}}">
+    <span vm-list="el in arr">{{el}}</span>
 </div>
 <script>
-    var data = new DataBind('a', {
-        c : 1
+    DataBind.config({
+        initDOM : true
     });
-
-    DataBind.observe('b', function(v, ov, extra){
-        console.log('some change', v, extra);
+    new DataBind('', {
+        value : '123',
+        arr : [1,3,5]
     });
-
-    var data2 = {
-        c : '123',
-        d : {
-            e : {
-                f : {
-                    $value : 30,
-                    $set : function(v){
-                        return Math.max(100, v);
-                    }
-                },
-                g : {
-                    $get : function(vm){
-                        return this.f + vm.a.c;
-                    }
-                },
-                h : []
-            }
-        }
-    }
-    data2 = new DataBind('b', data2);
-    DataBind.scan('', true)
-
 </script>
 </body>
 </html>

@@ -1,3 +1,11 @@
+/*
+    事件相关
+*/
+//################################################################### 
+var $ = require('./kit');
+var merge = $.merge,
+    unique = $.unique;
+//################################################################### 
 var listener = {
     'topic' : {},
     'check' : function(nameNS, type, build){
@@ -18,7 +26,7 @@ var listener = {
     },
     'fire' : function(nameNS, type, extArgs){
         type = type || 'change';
-        var fireBody = Accessor(nameNS);
+        var fireBody = Accessor.check(nameNS);
         if(!fireBody){return;}
 
         listener._fireList = [];
@@ -30,7 +38,7 @@ var listener = {
         listener._fireList.forEach(function(ns){
             evtList = listener.check(ns, type);
             if(!evtList){return;}
-            acc = Accessor(ns);
+            acc = Accessor.check(ns);
             args = [acc.value, acc.oldValue, {
                 type:type, 
                 object:fireBody.parent,
@@ -50,12 +58,12 @@ var listener = {
     },
     '_fireList' : null,
     '_getFireProps' : function(nameNS, type){
-        var acc = Accessor(nameNS);
+        var acc = Accessor.check(nameNS);
         if(!acc){return;}
         listener._fireList.push(nameNS);
         (listener.check(nameNS, type) || []).forEach(function(dep){
             if(typeof dep === 'string'){
-                var depAcc = Accessor(dep);
+                var depAcc = Accessor.check(dep);
                 depAcc.oldValue = depAcc.value;
                 depAcc.value = depAcc.get();
                 listener._getFireProps(dep);
@@ -86,7 +94,4 @@ var listener = {
     }
 }
 module.exports = listener;
-var $ = require('./kit');
-var merge = $.merge;
-var unique = $.unique;
-var Accessor = require('./Accessor');
+var Accessor = require('./accessor');

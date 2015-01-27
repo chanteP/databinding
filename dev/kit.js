@@ -24,7 +24,12 @@ $.parse = function(){
 $.merge = function(){
     return $.objMerger(1, arguments);
 };
-
+//################################################################### 
+$.parseProp = function(name, propNS){
+    if(typeof name !== 'string' || name === ''){return propNS;}
+    if(typeof propNS !== 'string' || propNS === ''){return name;}
+    return name + '.' + propNS;
+},
 //log################################################################### 
 $.log = function(part, info, e){
     var type =  e instanceof Error ? 'error' :
@@ -130,3 +135,23 @@ $.match = function(node, selector, context){
     context = context || document;
     return [].indexOf.call(context.querySelectorAll(selector) || [], node) >= 0;
 }
+
+$.ArrayExtend = (function(){
+    var ArrayExtend = {}, 
+        ArrayExtendProto = Array.prototype, 
+        ArrayExtendObserveMethod = 'arrayExtOb',
+        ArrayExtendMethod = 'pop, push, shift, unshift, reverse, sort, splice'.split(', ');
+    Object.defineProperty(ArrayExtend, ArrayExtendObserveMethod, {
+        writable : true,
+        enumerable : false
+    });
+    ArrayExtendMethod.forEach(function(methodName){
+        ArrayExtend[methodName] = function(){
+            var args = [].map.call(arguments, function(arg){return arg});
+            ArrayExtendProto[methodName].apply(this, args);
+            this[ArrayExtendObserveMethod](methodName);
+        }
+    });
+    ArrayExtend.bindMethodName = ArrayExtendObserveMethod;
+    ArrayExtend.__proto__ = ArrayExtendProto;    
+})();

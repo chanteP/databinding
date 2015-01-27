@@ -6,6 +6,7 @@ var config = {
     ,'name' : 'DataBind'
     ,'mode' : 0 //0:def prop, 1:get()&set()
 
+    ,'descMark' : '$'
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
 
@@ -15,7 +16,7 @@ var config = {
 
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
-    ,'initDOM' : false //DOM load的扫描, 1:bind 2|true bind+scan
+    ,'initDOM' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
     ,'contextGlobal' : window 
 
@@ -24,7 +25,7 @@ var config = {
     }
 };
 
-if(('_DataBindConfig' in window) || ('_config' in window)){
-    config.set(window._DataBindConfig || window._config);
+if('_config' in window){
+    config.set(window._config);
 }
 module.exports = config;

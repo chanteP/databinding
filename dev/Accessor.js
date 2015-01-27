@@ -3,19 +3,56 @@
     存了都会进行单向绑定
     DataBind.storage一览
 */
+/*
+    Accessor
+        .check 获取一个acc
+        nameNS[, value] 生成、赋值
+*/
+var $ = require('./kit');
+var config;
+var listener;
+
+var storage = {};
+//################################################################################################
+var parseProp = $.parseProp,
+    ArrayExtend = $.ArrayExtend;
+//TODO 完善。获取function中的依赖
+var parseDeps = function(base, func){
+    if(typeof func !== 'function'){return;}
+    var code = func.toString()
+        .replace(/^\s*\/\*[\s\S]*?\*\/\s*$/mg, '')
+        .replace(/^\s*\/\/.*$/mg, '')
+        .replace(/(this|vm)\.[\w\.]+(\(|\s*\=)/mg, '')
+        .replace(/\bthis\b/g, 'vm.' + base.parentNS);
+
+    var contextReg = /\bvm\.([\w|\.]+)\b/g;
+    var deps = [], match;
+    while ((match = contextReg.exec(code))) {
+        if (match[1]) {
+            deps.push(match[1]);
+        }
+    }
+    base.deps = deps;
+    deps.forEach(function(dep){
+        listener.add(dep, base.nameNS, 'change');
+    });
+};
 //################################################################################################
 /*
-    new 构造
-    func 判断
+    arguments.length === 1 : 返回acc
+    check ? 
+        nameNS, value : 赋值
+        new
 */
+
 var Accessor = function(nameNS, value){
-    if(arguments.length === 1){
-        if(!Accessor.storage.hasOwnProperty(nameNS)){return undefined;}
-        return Accessor.storage[nameNS];
-    }
-    else if(nameNS in Accessor.storage){
-        Accessor.storage[nameNS].value = value;
-        return Accessor.storage[nameNS];
+    // if(arguments.length === 1){
+    //     debugger
+    //     return Accessor.check(nameNS);
+    // }
+    if(Accessor.check(nameNS)){
+        storage[nameNS].value = value;
+        return storage[nameNS];
     }
     if(!(this instanceof Accessor)){
         return new Accessor(nameNS, value);
@@ -24,7 +61,7 @@ var Accessor = function(nameNS, value){
         name = props.pop(),
         isTop = nameNS === '',
         parentNS = isTop ? null : props.join('.'),
-        parentAcc = isTop ? null : Accessor(parentNS),
+        parentAcc = isTop ? null : Accessor.check(parentNS),
         parent = isTop ? null : parentAcc.value;
 
     this.name       = name;
@@ -33,39 +70,33 @@ var Accessor = function(nameNS, value){
     this.parentNS   = parentNS;
     this.parentAcc  = parentAcc;
 
-
     this.deps       = [];
     this.value      = value;
     this.oldValue   = value;
     this.dirty      = false;
 
     // this.list    = {};
-    this.mode       = config.mode;
-    this.status     = this.READY;
+    this.mode       = 0 && config.mode; //TODO强制开启
 
     this.context    = this.mode ? this : this.parent;
 
     this.children   = [];
-    this.propagation = config.propagation;
-    this.propagationType = [].concat(config.propagationType);
+    this.propagation = true || config.propagation; //TODO强制开启
 
     if(!isTop){
         parentAcc.children.push(this.nameNS);
         this.parent[this.name] = this.value;
     }
-    Accessor.storage[this.nameNS] = this;
+    storage[this.nameNS] = this;
 }
-Accessor.storage = {};
-//ready > inited   
-//build > setValue  
-Accessor.prototype.READY = 0;
-Accessor.prototype.INITED = 1;
 
+Accessor.storage = storage;
+Accessor.check = function(nameNS){
+    if(!storage.hasOwnProperty(nameNS)){return undefined;}
+    return storage[nameNS];
+};
 
-Accessor.parseProp = function(prop, context){
-    if(!prop){return context;}
-    return context ? context + '.' + prop : prop;
-}
+Accessor.parseProp = parseProp;
 Accessor.prototype.get = function(){
     return this.value;
 }
@@ -111,10 +142,10 @@ Accessor.prototype.set = function(value, dirty, force){
     this.oldValue = value;
     this.dirty = false;
 
-    if(!config.mode && $.isSimpleObject(value)){
+    if($.isSimpleObject(value)){
         for(var key in value){
             if(!value.hasOwnProperty(key)){continue;}
-            childAcc = Accessor(this.parseProp(key));
+            childAcc = Accessor.check(this.parseProp(key));
             childAcc && childAcc.bindProp();
         }
     }
@@ -134,12 +165,32 @@ Accessor.prototype.bindProp = function(){
     });
     this.parent[this.name] = value;
 }
+//生成propNS
 Accessor.prototype.parseProp = function(prop){
-    if(!prop){return this.nameNS;}
-    return this.nameNS ? this.nameNS + '.' + prop : prop;
+    return parseProp(this.nameNS, prop);
+}
+//设置
+Accessor.prototype.setProp = function(desc){
+    if(desc.set){
+        this.set = function(value, dirty, force){
+            value = desc.set.call(this.context, value, this.value, force);
+            this.__proto__.set.call(this, value, dirty, force);
+            return value;
+        }
+    }
+    if(desc.get){
+        parseDeps(this, desc.get);
+        this.get = function(){
+            return desc.get.call(this.parent, root);
+        }
+    }
+    if(desc.change){
+        listener.add(this.nameNS, desc.change, 'change');
+    }
+    return this;
 }
 Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
-    var acc = this instanceof Accessor ? this : Accessor(nameNS);
+    var acc = this instanceof Accessor ? this : Accessor.check(nameNS);
     if(acc){
         acc.children.forEach(Accessor.destroy);
         delete acc.parent[acc.name];
@@ -148,7 +199,5 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
 }
 //################################################################################################
 module.exports = Accessor;
-var $ = require('./kit');
-var config = require('./config');
-var listener = require('./Observer');
-var ArrayExtend = require('./ArrayExtend');
+config = require('./config');
+listener = require('./listener');

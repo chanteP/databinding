@@ -3,7 +3,7 @@
 
     好长。。。该拆分了
 */
-var DataBind = require('./DataBind');
+var DataBind = require('./factory');
 var expression = DataBind.expression;
 // var expression = require('./Expression');
 // var expression = require('./Expression.artTemplate.js');
