@@ -19,62 +19,36 @@
             </select>
         </div>
         <script>
-        var mode = /mode=(\d)/.exec(location.search);
-        mode = mode ? +mode[1] : 0;
-        slt.value = mode;
-        slt.onchange = function(){
-            location.href = '?mode=' + this.value;
-        }
-        </script>
-    <!-- mode config end-->
-        <pre>
-        <script type="text/javascript" style="display:block;">
-        /* ######################################################################
-        vm : {
+        var core = DataBind;
+
+        var data = {
             a : {
-                b : {
-                    c : {
-                        data : this.d + this.e
-                    },
-                    d : 222,
-                    e : 13
+                b : 1,
+                c : 3,
+                d : {
+                    $get : function(vm){
+                        debugger
+                        return this.b + this.c + vm.data.accessor;
+                    }
                 }
             },
-            s : 1 [3000, +]
-        }
-        */
-        DataBind.config({
-            mode : mode
-            ,initDOM : true
-        });
-        var vm = DataBind.root;
-        var desc = {
-            data : {
-                $value:123,
-                $get : function(vm){
-                   return this.d + this.e + vm.s;
-                },
-                $change : function(v, ov, detail){
-                    console.log('a.b.c.data', v, ov, detail)
+            accessor : {
+                $value : 1,
+                $set : function(val){
+                    return Math.min(val, 5);
                 }
-            }, 
-            d : 222,
-            e : 13
-        };
-        var demo = new DataBind('a.b.c', desc);
-        var pro = new DataBind('', {
-            s : {
-                $value : 231,
-                $set : function(v){
-                    return Math.min(v, 250);
-                },
-                $dirty : true
+            },
+            $change : function(v, ov){
+                console.log(JSON.stringify(v));
             }
-        });
-        var num = vm.s;
-        setInterval(function(){
-            pro.set('s', num++)
-        }, 3000);
+        };
+
+        data = new core('data', data);
+
+        (function(){
+            data.accessor++;
+            setTimeout(arguments.callee, 1000);
+        })();
         </script>
         </pre>
     </body>
