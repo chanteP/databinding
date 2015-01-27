@@ -5,11 +5,13 @@
 var $ = require('./kit');
 var merge = $.merge,
     unique = $.unique;
+
+var storage = {};
 //################################################################### 
 var listener = {
-    'topic' : {},
+    'storage' : storage,
     'check' : function(nameNS, type, build){
-        var list = listener.topic[nameNS];
+        var list = storage[nameNS];
         if(list && list[type]){
             return list[type];
         }
@@ -17,7 +19,7 @@ var listener = {
             return false;
         }
         if(!list){
-            list = listener.topic[nameNS] = {};
+            list = storage[nameNS] = {};
         }
         if(!list[type]){
             list[type] = [];

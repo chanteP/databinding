@@ -32,7 +32,7 @@ var func = {
         return desc;
     },
     //nameNS注册到acc
-    register : function(obj, baseNS){
+    register : function(baseNS, obj){
         var desc = func.getDesc(obj), 
             base,
             data = desc.value;
@@ -40,7 +40,7 @@ var func = {
         if(isSimpleObject(data)){
             for(var key in data){
                 if(!data.hasOwnProperty(key)){continue;}
-                func.register(data[key], base.parseProp(key));
+                func.register(base.parseProp(key), data[key]);
             }
         }
         base.setProp(desc);

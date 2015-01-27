@@ -12,6 +12,7 @@ var $ = require('./kit');
 var config;
 var listener;
 
+var root = {};
 var storage = {};
 //################################################################################################
 var parseProp = $.parseProp,
@@ -90,6 +91,7 @@ var Accessor = function(nameNS, value){
     storage[this.nameNS] = this;
 }
 
+Accessor.root = root;
 Accessor.storage = storage;
 Accessor.check = function(nameNS){
     if(!storage.hasOwnProperty(nameNS)){return undefined;}
@@ -197,6 +199,8 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
+
+new Accessor('', root);
 //################################################################################################
 module.exports = Accessor;
 config = require('./config');

@@ -207,7 +207,7 @@ module.exports = Accessor;
 config = require('./config');
 listener = require('./listener');
 
-},{"./config":3,"./kit":8,"./listener":9}],2:[function(require,module,exports){
+},{"./config":3,"./kit":7,"./listener":8}],2:[function(require,module,exports){
 /*!
     Σヾ(ﾟДﾟ)ﾉ
     基础observe
@@ -247,7 +247,7 @@ if('_config' in window){
     config.set(window._config);
 }
 module.exports = config;
-},{"./kit":8}],4:[function(require,module,exports){
+},{"./kit":7}],4:[function(require,module,exports){
 /*
     core(object[, config]);
     core(namespace, object[, config]);
@@ -299,7 +299,7 @@ apiList.forEach(function(method){
         })(method)
     });
 });
-},{"./accessor":1,"./config":3,"./factory":5,"./factory.parser":6,"./kit":8,"./listener":9}],5:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./factory":5,"./factory.parser":6,"./kit":7,"./listener":8}],5:[function(require,module,exports){
 /*
     
 */
@@ -346,7 +346,7 @@ lib.fire           = listener.fire;
 lib.destroy        = Accessor.destroy;
 
 
-},{"./accessor":1,"./config":3,"./factory.define":4,"./listener":9}],6:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./factory.define":4,"./listener":8}],6:[function(require,module,exports){
 /*
     构造器的辅助方法
 */
@@ -416,14 +416,7 @@ var func = {
 module.exports = func;
 
 
-},{"./accessor":1,"./config":3,"./kit":8}],7:[function(require,module,exports){
-/*!
-    Σヾ(ﾟДﾟ)ﾉ
-*/
-require('./base');
-// require('./Expression.artTemplate');
-// require('./DomExtend');
-},{"./base":2}],8:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./kit":7}],7:[function(require,module,exports){
 var $ = {};
 module.exports = $;
 var config = require('./config');
@@ -582,7 +575,7 @@ $.ArrayExtend = (function(){
     ArrayExtend.__proto__ = ArrayExtendProto;    
 })();
 
-},{"./config":3}],9:[function(require,module,exports){
+},{"./config":3}],8:[function(require,module,exports){
 /*
     事件相关
 */
@@ -683,4 +676,4 @@ var listener = {
 module.exports = listener;
 var Accessor = require('./accessor');
 
-},{"./accessor":1,"./kit":8}]},{},[7]);
+},{"./accessor":1,"./kit":7}]},{},[2]);

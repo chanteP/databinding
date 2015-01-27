@@ -3,7 +3,7 @@ var config = {
 
     'debug' : 1
 
-    ,'name' : 'DataBind'
+    ,'name' : 'note'
     ,'mode' : 0 //0:def prop, 1:get()&set()
 
     ,'descMark' : '$'
@@ -11,7 +11,7 @@ var config = {
     ,'expFoot' : '}}'
 
     ,'rootVar' : 'vm' //备用
-    ,'DOMPrefix' : 'vm-'
+    ,'DOMPrefix' : 'nt-'
     ,'checkNode' : null //爬dom树中断判断
 
     ,'propagation' : true

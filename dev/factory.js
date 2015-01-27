@@ -15,8 +15,9 @@ var lib = function(nameNS, data){
 }
 module.exports = lib;
 
-lib.root = root;
+lib.root = Accessor.root;
 lib.storage = Accessor.storage;
+lib.listener = listener.storage;
 lib.config = config.set;
 
 lib.get = function(nameNS){

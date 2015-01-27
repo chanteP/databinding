@@ -20,7 +20,7 @@ var databind = function(nameNS, obj){
         nameNS = '';
     }
     var base = build(nameNS, obj);
-    register(base, '');
+    register('', base);
     this.name = this._name = nameNS;
 
     //TODO 强制mode0输出...

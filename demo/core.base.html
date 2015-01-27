@@ -25,11 +25,17 @@
             s : 1 [3000, +]
         }
         */
-        var core = DataBind;
+        var core = note;
 
         var data = {
             a : {
-                b : 1
+                b : 1,
+                c : 3,
+                d : {
+                    $get : function(vm){
+                        return this.b + this.c + vm.data.accessor;
+                    }
+                }
             },
             accessor : {
                 $value : 1,
