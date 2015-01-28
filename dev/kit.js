@@ -25,8 +25,14 @@ $.merge = function(){
     return $.objMerger(1, arguments);
 };
 //################################################################### 
-$.parseQuery = function(){
-    
+$.parseQuery = function(str){
+    //重复字段忽略...
+    var rs = {}, arr = (str || '').split('&'), field;
+    for(var i = arr.length - 1; i >= 0; i--){
+        field = arr[i].split('=');
+        rs[field[0]] = field[1];
+    }
+    return rs;
 }
 //################################################################### 
 $.parseProp = function(name, propNS){

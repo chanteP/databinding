@@ -3,30 +3,30 @@
     expression('a.b.c', {a:xxx}, vm， extraData)
     整个文件跟{{}}没关系啦
 */
-var DataBind = require('./factory');
 var $ = require('./kit');
 var config = require('./config');
 
-//....默认打上debug...只能。。
+var expressionEngine = require('./expression.artTemplate'),
+    engine = {
+        render : config.templateRender || expressionEngine.render,
+        register : config.templateHelper || expressionEngine.register
+    };
 
-var artTemplate = window.template = require('art-template');
-var filters = require('./expression.filter');
-var merge = $.merge;
-
-var rootVar = config.rootVar, rootVarLen = String(rootVar).length;
+var rootVar = config.rootVar,
+    rootVarLen = String(rootVar).length,
+    extraVar = config.extraVar;
 
 //################################################################################################################
-var log = $.log;
-var get = DataBind.get;
+var merge = $.merge,
+    log = $.log;
 //################################################################################################################
-artTemplate.onerror = function(e){
-    log('Expression.artTemplate', e.message, 'warn');
-}
+//获取表达式中依赖的字段
 var parseDeps = function(expressionText, context){
     var expression = getExpressionPart(expressionText);
     var reg = /(?=\b|\.|\[)(?!\'|\")([\w\.\[\]]+)(?!\'|\")\b/g, expressionBody;
     var match, col = [], temp;
     while(match = reg.exec(expression)){
+        //TODO 数组支持
         if(match[1].indexOf('[') === 0){continue;}
         temp = match[1].indexOf('[') ? match[1].split('[')[0] : match[1];
         if(temp.slice(0, rootVarLen - 1) === rootVar + '.'){}
@@ -36,34 +36,26 @@ var parseDeps = function(expressionText, context){
     }
     return col;
 }
+//分离表达式部分和helper部分
 var getExpressionPart = function(expressionText){
     return expressionText.split(/\|{1,1}/)[0].trim();
-}
-for(var helperName in filters){
-    if(!filters.hasOwnProperty(helperName)){continue;}
-    artTemplate.helper(helperName, filters[helperName]);
 }
 //################################################################################################################
 var expression = function(expressionText, scope, rootScope, extraData){
     if(expressionText === undefined){return '';}
-    expressionText = '{{' + expressionText + '}}';
-    var rs, root = {};
+
+    var data, root = {}, extra = {};
     root[rootVar] = rootScope;
-    rs = artTemplate.render(expressionText)(merge(
+    extra[extraVar] = extraData;
+    data = merge(
         scope,
         root,
-        {$:extraData}
-    ));
-    if(rs === '{Template Error}'){
-        rs = '';
-    }
-    return rs;
+        extra
+    );
+    return engine.render(expressionText, data);
 }
-//################################################################################################################
-DataBind.expression = expression;
-DataBind.expression.parseDeps = parseDeps;
-DataBind.expression.register = artTemplate.helper;
-
+expression.register = engine.register;
+expression.parseDeps = parseDeps;
 //################################################################################################################
 module.exports = expression;
 

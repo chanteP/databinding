@@ -64,10 +64,12 @@ var listener = {
         if(!acc){return;}
         listener._fireList.push(nameNS);
         (listener.check(nameNS, type) || []).forEach(function(dep){
+            //依赖
             if(typeof dep === 'string'){
                 var depAcc = Accessor.check(dep);
                 depAcc.oldValue = depAcc.value;
                 depAcc.value = depAcc.get();
+                //TODO depAcc.set(depAcc.get());
                 listener._getFireProps(dep);
             }
         });

@@ -154,9 +154,10 @@ Accessor.prototype.set = function(value, dirty, force){
     return value;
 }
 //mode=0 defineproperty绑定对象属性用
+//TODO destroy释放
 Accessor.prototype.bindProp = function(){
     if(this.mode || !$.isSimpleObject(this.parent)){return;}
-    var value = this.value, self = this;
+    var self = this;
     Object.defineProperty(this.parent, this.name, {
         set : function(value){
             return self.set(value);
@@ -165,7 +166,7 @@ Accessor.prototype.bindProp = function(){
             return self.get();
         }
     });
-    this.parent[this.name] = value;
+    this.parent[this.name] = this.value;
 }
 //生成propNS
 Accessor.prototype.parseProp = function(prop){
@@ -195,7 +196,6 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
     var acc = this instanceof Accessor ? this : Accessor.check(nameNS);
     if(acc){
         acc.children.forEach(Accessor.destroy);
-        delete acc.parent[acc.name];
         delete Accessor.storage[acc.nameNS];
     }
 }
@@ -214,6 +214,10 @@ module.exports = require('./factory');
 window[require('./config').name] = module.exports;
 
 },{"./config":3,"./factory":5}],3:[function(require,module,exports){
+/*
+    配置
+        优先级：config() > _config > scriptQuery
+*/
 var $ = require('./kit');
 var config = {
 
@@ -229,6 +233,10 @@ var config = {
     ,'rootVar' : 'vm' //备用
     ,'DOMPrefix' : 'nt-'
     ,'checkNode' : null //爬dom树中断判断
+    ,'extraVar' : '$' //备用
+
+    ,'templateRender' : null //模版引擎, te(expression, data)
+    ,'templateHelper' : null //模版helper注册
 
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
@@ -240,6 +248,10 @@ var config = {
         $.merge(config, cfg, true);
     }
 };
+var currentScript = document.currentScript || document.scripts[document.scripts.length - 1];
+if(currentScript){
+    config.set($.parseQuery(currentScript.src.split('?')[1]));
+}
 
 if('_config' in window){
     config.set(window._config);
@@ -316,6 +328,7 @@ lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
 lib.config = config.set;
+lib._config = config;
 
 lib.get = function(nameNS){
     var index, value;
@@ -364,8 +377,8 @@ var func = {
         }
         else{
             descList.forEach(function(d){
-                desc[d] = obj['$' + d];
-                if(delete obj['$' + d]){
+                desc[d] = obj[config.descMark + d];
+                if(delete obj[config.descMark + d]){
                     check = true;
                 }
             });
@@ -439,8 +452,14 @@ $.merge = function(){
     return $.objMerger(1, arguments);
 };
 //################################################################### 
-$.parseQuery = function(){
-    
+$.parseQuery = function(str){
+    //重复字段忽略...
+    var rs = {}, arr = (str || '').split('&'), field;
+    for(var i = arr.length - 1; i >= 0; i--){
+        field = arr[i].split('=');
+        rs[field[0]] = field[1];
+    }
+    return rs;
 }
 //################################################################### 
 $.parseProp = function(name, propNS){
@@ -641,10 +660,12 @@ var listener = {
         if(!acc){return;}
         listener._fireList.push(nameNS);
         (listener.check(nameNS, type) || []).forEach(function(dep){
+            //依赖
             if(typeof dep === 'string'){
                 var depAcc = Accessor.check(dep);
                 depAcc.oldValue = depAcc.value;
                 depAcc.value = depAcc.get();
+                //TODO depAcc.set(depAcc.get());
                 listener._getFireProps(dep);
             }
         });

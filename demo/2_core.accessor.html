@@ -2,23 +2,22 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <meta http-equiv="content-language" content="zh-CN" />
-        
-        <title>core test</title>
-        
-        <script src="../build/note.js"></script>
+        <script src="../build/note.base.js?name=note&descMark=$&rootVar=vm"></script>
     </head>
     <body>
         <pre>
         <script type="text/javascript" style="display:block;">
-        var core = note;
         var data = {
             a : {
                 b : 1,
                 c : 3,
                 d : {
+                    f : '123'
+                },
+                g : {
                     $get : function(vm){
-                        return this.b + this.c + vm.data.accessor;
+                        //vm --> root
+                        return this.b + +this.d.f + vm.data.accessor;
                     }
                 }
             },
@@ -27,12 +26,14 @@
                 $set : function(val){
                     return Math.min(val, 5);
                 }
-            },
-            $change : function(v, ov){
-                console.log(JSON.stringify(v));
             }
         };
-        var v = core('data', data);
+        note('data', data);
+
+        //#######################################
+        note.observe('', function(v, ov, detail){
+            console.log(JSON.stringify(v));
+        });
 
         (function(){
             data.accessor++;

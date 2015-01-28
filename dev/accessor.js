@@ -153,9 +153,10 @@ Accessor.prototype.set = function(value, dirty, force){
     return value;
 }
 //mode=0 defineproperty绑定对象属性用
+//TODO destroy释放
 Accessor.prototype.bindProp = function(){
     if(this.mode || !$.isSimpleObject(this.parent)){return;}
-    var value = this.value, self = this;
+    var self = this;
     Object.defineProperty(this.parent, this.name, {
         set : function(value){
             return self.set(value);
@@ -164,7 +165,7 @@ Accessor.prototype.bindProp = function(){
             return self.get();
         }
     });
-    this.parent[this.name] = value;
+    this.parent[this.name] = this.value;
 }
 //生成propNS
 Accessor.prototype.parseProp = function(prop){
@@ -194,7 +195,6 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
     var acc = this instanceof Accessor ? this : Accessor.check(nameNS);
     if(acc){
         acc.children.forEach(Accessor.destroy);
-        delete acc.parent[acc.name];
         delete Accessor.storage[acc.nameNS];
     }
 }

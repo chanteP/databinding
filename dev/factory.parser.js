@@ -20,8 +20,8 @@ var func = {
         }
         else{
             descList.forEach(function(d){
-                desc[d] = obj['$' + d];
-                if(delete obj['$' + d]){
+                desc[d] = obj[config.descMark + d];
+                if(delete obj[config.descMark + d]){
                     check = true;
                 }
             });

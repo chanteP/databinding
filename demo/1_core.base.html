@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/note.base.js?name=note&descMark=$"></script>
+    </head>
+    <body>
+        <pre>
+        <script type="text/javascript" style="display:block;">
+        var data = {
+            a : {
+                b : 1,
+                c : 3,
+                d : {
+                    f : '123'
+                }
+            }
+        };
+        //as "note('data', data)";
+        data = note('data', data);
+
+        data.observe('', function(value, oldValue, detail){
+            console.log(JSON.stringify(value));
+        });
+
+        data.a.b = 123456;
+        data.a.d.f = 'hehe';
+
+        </script>
+        </pre>
+    </body>
+</html>
