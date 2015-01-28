@@ -48,10 +48,9 @@ var parseDeps = function(base, func){
 */
 
 var Accessor = function(nameNS, value){
-    // if(arguments.length === 1){
-    //     debugger
-    //     return Accessor.check(nameNS);
-    // }
+    if(arguments.length === 1){
+        return Accessor.check(nameNS);
+    }
     if(Accessor.check(nameNS)){
         storage[nameNS].value = value;
         return storage[nameNS];
@@ -200,7 +199,6 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
-
 new Accessor('', root);
 //################################################################################################
 module.exports = Accessor;
@@ -309,9 +307,6 @@ var Accessor = require('./accessor');
 var listener = require('./listener');
 var define = require('./factory.define');
 
-var root = {};
-
-new Accessor('', root);
 var lib = function(nameNS, data){
     return define(nameNS, data);
 }
@@ -443,6 +438,10 @@ $.parse = function(){
 $.merge = function(){
     return $.objMerger(1, arguments);
 };
+//################################################################### 
+$.parseQuery = function(){
+    
+}
 //################################################################### 
 $.parseProp = function(name, propNS){
     if(typeof name !== 'string' || name === ''){return propNS;}

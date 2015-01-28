@@ -25,6 +25,10 @@ $.merge = function(){
     return $.objMerger(1, arguments);
 };
 //################################################################### 
+$.parseQuery = function(){
+    
+}
+//################################################################### 
 $.parseProp = function(name, propNS){
     if(typeof name !== 'string' || name === ''){return propNS;}
     if(typeof propNS !== 'string' || propNS === ''){return name;}

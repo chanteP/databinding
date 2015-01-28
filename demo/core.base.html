@@ -11,22 +11,7 @@
     <body>
         <pre>
         <script type="text/javascript" style="display:block;">
-        /* ######################################################################
-        vm : {
-            a : {
-                b : {
-                    c : {
-                        data : this.d + this.e
-                    },
-                    d : 222,
-                    e : 13
-                }
-            },
-            s : 1 [3000, +]
-        }
-        */
         var core = note;
-
         var data = {
             a : {
                 b : 1,
@@ -47,8 +32,7 @@
                 console.log(JSON.stringify(v));
             }
         };
-
-        data = core('data', data);
+        var v = core('data', data);
 
         (function(){
             data.accessor++;

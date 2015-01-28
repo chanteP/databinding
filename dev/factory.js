@@ -7,9 +7,6 @@ var Accessor = require('./accessor');
 var listener = require('./listener');
 var define = require('./factory.define');
 
-var root = {};
-
-new Accessor('', root);
 var lib = function(nameNS, data){
     return define(nameNS, data);
 }

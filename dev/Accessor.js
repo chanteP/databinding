@@ -47,10 +47,9 @@ var parseDeps = function(base, func){
 */
 
 var Accessor = function(nameNS, value){
-    // if(arguments.length === 1){
-    //     debugger
-    //     return Accessor.check(nameNS);
-    // }
+    if(arguments.length === 1){
+        return Accessor.check(nameNS);
+    }
     if(Accessor.check(nameNS)){
         storage[nameNS].value = value;
         return storage[nameNS];
@@ -199,7 +198,6 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
-
 new Accessor('', root);
 //################################################################################################
 module.exports = Accessor;
