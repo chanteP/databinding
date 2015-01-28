@@ -15,8 +15,6 @@ module.exports = lib;
 lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
-lib.config = config.set;
-lib._config = config;
 
 lib.get = function(nameNS){
     var index, value;

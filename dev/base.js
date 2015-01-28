@@ -2,5 +2,12 @@
     Σヾ(ﾟДﾟ)ﾉ
     基础observe
 */
-module.exports = require('./factory');
-window[require('./config').name] = module.exports;
+var config = require('./config');
+var base = require('./factory');
+
+base.config = config.set;
+base._config = config;
+
+window[config.name] = base;
+
+module.exports = base;

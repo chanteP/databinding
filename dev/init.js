@@ -3,5 +3,8 @@
 */
 var base = require('./base');
 base.expression = require('./expression');
-// require('./Expression.artTemplate');
-// require('./DomExtend');
+
+var dom = require('./dom');
+base.scan = dom.scan;
+base.bindContent = dom.bindContent;
+

@@ -6,15 +6,23 @@ var checkProp;
 var scanQueue = [];
 
 var config = require('./config');
+var marker = require('./dom.marker');
 
-var base = require('base'),
+var binder = require('./dom.binder');
+
+var expPreg = marker.exp;
+
+var base = require('./base'),
     get = base.get,
     observe = base.observe;
 
-var engine = function(node, parseOnly){
-    if(parseOnly){
+var scanEngine = function(node, parseOnly){
+    //boolean的情况下
+    if(typeof parseOnly === 'boolean'){
         parseOnlyWhileScan = parseOnly;
     }
+    //TODO data的情况下
+
     if(checkProp){
         scanQueue.push(node);
         return;
@@ -44,28 +52,71 @@ var walker = function(node, originNode){
     if(node.nodeType === 1){
         var html = node.outerHTML;
         //外部处理
-        // if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
+        if(check.custom(node, originNode)){return;}
         //if判断
         if(check.condition(node)){return;}
         //是list则放弃治疗
         if(check.list(node)){return;}
-        //节点包含{{}}
-        if(!expPreg.test(html) && html.indexOf(marker.list) < 0){return;}
+        //节点不包含{{}}
+        if(check.html(html) && html.indexOf(marker.list) < 0){return;}
         //解析attr
         check.attr(node, html);
-
-        if(node.getAttribute(marker.escape)){return;}
+        //escape子节点
+        if(check.escape(node)){return;}
 
         //解析children
-        [].forEach.call(node.childNodes, walker);
+        [].forEach.call(node.childNodes, function(childNode){
+            walker(childNode, originNode);
+        });
     }
     //textNode
     else if(node.nodeType === 3){
-        //非空而且包含{{}}
-        if(!node.textContent.trim().length || !expPreg.test(node.textContent)){return;}
-        bind.text(node, node.textContent);
+        check.text(node);
     }
     //其他节点管来干嘛
-},
+};
 
-module.exports = engine;
+var check = {
+    custom : function(node, originNode){
+        // if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
+    },
+    condition : function(node){
+
+    },
+    list : function(node){
+        var listProp = node.getAttribute(marker.list);
+        if(typeof listProp === 'string' && (listProp = marker.inPreg.exec(listProp))){
+            node.removeAttribute(marker.list);
+            listProp.shift();
+            binder.list(node, listProp);
+            return true;
+        }
+    },
+    html : function(text){
+        return !expPreg.test(text);
+    },
+    text : function(node){
+        if(check.html(node.textContent)){return;}
+        binder.text(node, node.textContent);
+    },
+    attr : function(node, html){
+        var attrs = node.attributes;
+    },
+    escape : function(node){
+
+    }
+}
+
+module.exports = {
+    scan : scanEngine,
+    addBinder : function(props, func){
+        if(!checkProp){return;}
+        props = [].concat(props);
+        props.forEach(function(prop){
+            if(!checkProp[prop]){
+                checkProp[prop] = [];
+            }
+            checkProp[prop].push(func);
+        });
+    }
+};

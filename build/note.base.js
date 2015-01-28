@@ -210,8 +210,15 @@ listener = require('./listener');
     Σヾ(ﾟДﾟ)ﾉ
     基础observe
 */
-module.exports = require('./factory');
-window[require('./config').name] = module.exports;
+var config = require('./config');
+var base = require('./factory');
+
+base.config = config.set;
+base._config = config;
+
+window[config.name] = base;
+
+module.exports = base;
 
 },{"./config":3,"./factory":5}],3:[function(require,module,exports){
 /*
@@ -229,11 +236,11 @@ var config = {
     ,'descMark' : '$'
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
-
     ,'rootVar' : 'vm' //备用
-    ,'DOMPrefix' : 'nt-'
-    ,'checkNode' : null //爬dom树中断判断
     ,'extraVar' : '$' //备用
+
+    ,'DOMPrefix' : 'nt-'
+    ,'DOMCheck' : null //爬dom树中断判断
 
     ,'templateRender' : null //模版引擎, te(expression, data)
     ,'templateHelper' : null //模版helper注册
@@ -327,8 +334,6 @@ module.exports = lib;
 lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
-lib.config = config.set;
-lib._config = config;
 
 lib.get = function(nameNS){
     var index, value;

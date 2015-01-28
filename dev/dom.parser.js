@@ -11,8 +11,7 @@ var base = require('./base'),
     get = base.get,
     root = base.root;
 
-var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + 
-                config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm'),
+var expPreg = marker.exp,
     expSource = expPreg.source;
 //################################################################################################################
 var unique = $.unique;
