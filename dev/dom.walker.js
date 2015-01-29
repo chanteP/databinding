@@ -6,7 +6,7 @@ var checkProp;
 var scanQueue = [];
 
 var config = require('./config');
-var marker, binder;
+var marker, observer;
 var expPreg;
 
 var base = require('./base'),
@@ -85,7 +85,7 @@ var check = {
         if(typeof listProp === 'string' && (listProp = marker.inPreg.exec(listProp))){
             node.removeAttribute(marker.list);
             listProp.shift();
-            binder.list(node, listProp);
+            observer.list(node, listProp);
             return true;
         }
     },
@@ -94,12 +94,12 @@ var check = {
     },
     text : function(node){
         if(check.html(node.textContent)){return;}
-        binder.text(node, node.textContent);
+        observer.text(node, node.textContent);
     },
     attr : function(node, html){
         [].forEach.call(node.attributes, function(attributeNode){
             if(expPreg.test(attributeNode.value)){
-                binder.attr(node, attributeNode.value, attributeNode.name);
+                observer.attr(node, attributeNode.value, attributeNode.name);
             }
         });
     },
@@ -111,7 +111,7 @@ var check = {
 module.exports = {
     init : function(){
         marker = require('./dom.marker');
-        binder = require('./dom.binder');
+        observer = require('./dom.observer');
         expPreg = marker.exp;
         return this;
     },
@@ -125,5 +125,8 @@ module.exports = {
             }
             checkProp[prop].push(func);
         });
+    },
+    removeBinder : function(){
+
     }
 };

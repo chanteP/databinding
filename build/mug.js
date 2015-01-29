@@ -206,7 +206,7 @@ module.exports = Accessor;
 config = require('./config');
 listener = require('./listener');
 
-},{"./config":3,"./kit":16,"./listener":17}],2:[function(require,module,exports){
+},{"./config":3,"./kit":17,"./listener":18}],2:[function(require,module,exports){
 /*!
     Σヾ(ﾟДﾟ)ﾉ
     基础observe
@@ -221,7 +221,7 @@ window[config.name] = base;
 
 module.exports = base;
 
-},{"./config":3,"./factory":13}],3:[function(require,module,exports){
+},{"./config":3,"./factory":14}],3:[function(require,module,exports){
 /*
     配置
         优先级：config() > _config > scriptQuery
@@ -265,41 +265,180 @@ if('_config' in window){
     config.set(window._config);
 }
 module.exports = config;
-},{"./kit":16}],4:[function(require,module,exports){
+},{"./kit":17}],4:[function(require,module,exports){
+/*
+    view->model
+*/
+var $ = require('./kit');
+var find = $.find,
+    findAll = $.findAll;
+var base = require('./base'),
+    set = base.set;
+var marker = require('./dom.marker'),
+    parser = require('./dom.parser');
+
+var numberPreg = /^[\d\.]+$/;
+
+var bindModel = function(e){
+    var type = this.type, name = this.name, tagName = this.tagName;
+    var model = this.getAttribute(marker.model), context = parser.context(this, this);
+    var value = '', form = this.form || document.body, rs;
+    //TODO 强制绑定感觉不太好...对比下性能？
+    this[marker.bind] = context;
+
+    model = $.parseProp(context, model);
+    if(!(model in base.storage)){
+        base(model, undefined);
+    }
+
+    if(name && tagName === 'INPUT'){
+        switch (type){
+            case 'checkbox' : 
+                rs = findAll('[name="'+name+'"]:checked', form);
+                value = [];
+                rs && [].forEach.call(rs, function(el){
+                    value.push(el.value);
+                });
+                value = value.join(',');
+                break;
+            case 'radio' : 
+                rs = find('[name="'+name+'"]:checked', form);
+                value = rs ? rs.value : '';
+                break;
+            default : 
+                value = this.value;
+                break;
+        }
+    }
+    else{
+        value = this.value;
+    }
+    if(!isNaN(value) && numberPreg.test(value)){
+        value = +value;
+    }
+    set(model, value);
+}
+
+module.exports = {
+    bind : function(node){
+        if(!node){return this;}
+        $.evt(node)
+            //TODO 绑定太简陋?
+            //radio checkbox etc...
+            .on('change', [
+                    'input['+marker.model+']',
+                    'select['+marker.model+']'
+                ].join(','), 
+                bindModel)
+            //text etc...
+            .on('input', [
+                    'input['+marker.model+']',
+                    'textarea['+marker.model+']'
+                ].join(','),
+                bindModel);
+        return this;
+    },
+    unbind : function(){
+
+    }
+}
+},{"./base":2,"./dom.marker":6,"./dom.parser":8,"./kit":17}],5:[function(require,module,exports){
+/*
+    dom绑定用外挂包
+*/
+
+var config = require('./config');
+
+var api = {
+    scan : require('./dom.walker').init().scan,
+    bindContent : require('./dom.binder').bind
+}
+
+window.document.addEventListener('DOMContentLoaded', function(){
+    if(!config.initDOM){return;}
+    if(typeof config.initDOM === 'string'){
+        config.initDOM === 'bind' && api.bindContent(document.body);
+        config.initDOM === 'scan' && api.scan(document.documentElement);
+    }
+    else if(config.initDOM === true){
+        api.bindContent(document.body);
+        api.scan(document.documentElement);
+    }
+});
+
+module.exports = api;
+
+},{"./config":3,"./dom.binder":4,"./dom.walker":9}],6:[function(require,module,exports){
+/*
+    标记
+*/
+var config = require('./config');
+var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
+var prefix = config.DOMPrefix;
+var marker = {
+    'exp' : expPreg //表达式的正则表达式检测
+    ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
+
+    ,'model' : prefix + 'model'//v to m
+    ,'list' : prefix + 'list'//list: tr in table
+    ,'bind' : prefix + 'bind'//scope源
+    ,'if'   : prefix + 'if'//条件判断
+    ,'escape' : prefix + 'escape'//scan外
+    ,'toggle' : prefix + 'toggle'
+    ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
+    ,'boundAttr' : prefix + 'boundAttr' //已经绑定的attr&原值
+    ,'boundText' : prefix + 'boundText' //已经绑定的text&原值
+    ,'boundProp' : prefix + 'boundProp' //已经绑定的props
+};
+
+module.exports = marker;
+},{"./config":3}],7:[function(require,module,exports){
 /*
     observe相关
 */
+var $ = require('./kit');
 var walker = require('./dom.walker'),
     parser = require('./dom.parser'),
     marker = require('./dom.marker');
 var observe = walker.addBinder,
+    unobserve = walker.removeBinder,
     scan = walker.scan;
 var getText = parser.text;
+
+var contains = $.contains;
 //################################################################################################################
 var checkRecycle = function(node){
+    //TODO 总不能一消失就解除绑定吧
+    if(!contains(document.documentElement, node)){
+        for(var prop in node[marker.boundProp]){
+            node[marker.boundProp][prop].forEach(function(func){
+                unobserve(prop, func, checkType);
+            });
+        }
+        return true;
+    }
     return false;
 }
 var setBoundNode = function(node, deps, func, text, value){
-    // node[marker.boundAttr] = node[marker.boundAttr] || {};
-    // node[marker.boundProp] = node[marker.boundProp] || {};
-
-    // if(value){
-    //     node[marker.boundAttr][text] = value;
-    // }
-    // else{
-    //     node[marker.boundText] = text;
-    // }
-    // deps.forEach(function(dep){
-    //     node[marker.boundProp][dep] = node[marker.boundProp][dep] || [];
-    //     node[marker.boundProp][dep].push(func);
-    // });
+    node[marker.boundAttr] = node[marker.boundAttr] || {};
+    node[marker.boundProp] = node[marker.boundProp] || {};
+    if(value){
+        node[marker.boundAttr][text] = value;
+    }
+    else{
+        node[marker.boundText] = text;
+    }
+    deps.forEach(function(dep){
+        node[marker.boundProp][dep] = node[marker.boundProp][dep] || [];
+        node[marker.boundProp][dep].push(func);
+    });
 }
 //################################################################################################################
 var binder = {
     //node, attribute
     attr : function(node, attrText, attrName){
         var context = parser.context(node, node),
-            deps = parse.deps(attrText, context), 
+            deps = parser.deps(attrText, context), 
             func;
         var extraData = node[marker.extraData];
 
@@ -308,11 +447,13 @@ var binder = {
                 func = node.type === 'checkbox' ? 
                 function(value){
                     if(checkRecycle(node)){return;}
+                    value = getText(attrText, context, extraData);
                     //TODO value == bool
-                    node.checked = (value || '').split(',').indexOf(node.value) >= 0;
+                    node.checked = value.split(',').indexOf(node.value) >= 0;
                 } : 
                 function(value){
                     if(checkRecycle(node)){return;}
+                    value = getText(attrText, context, extraData);
                     //TODO value == bool
                     node.checked = value === node.value;
                 };
@@ -321,6 +462,7 @@ var binder = {
             case 'selected' : 
                 func = function(value){
                     if(checkRecycle(node)){return;}
+                    value = getText(attrText, context, extraData);
                     //TODO value == bool
                     node.selected = value === node.value;
                 };
@@ -329,7 +471,7 @@ var binder = {
             case 'value' : 
                 func = function(value){
                     if(checkRecycle(node)){return;}
-                    // value = getText(attrText, context, extraData);
+                    value = getText(attrText, context, extraData);
                     node.setAttribute('value', value);
                     node.value = value;
                 }
@@ -337,13 +479,13 @@ var binder = {
             case 'data-src' : 
                 func = function(){
                     if(checkRecycle(node)){return;}
-                    // node.src = getText(attrText, context, extraData);
+                    node.src = getText(attrText, context, extraData);
                 }
                 break;
             default : 
-                func = function(){
+                func = function(value){
                     if(checkRecycle(node)){return;}
-                    // value = getText(attrText, context, extraData);
+                    value = getText(attrText, context, extraData);
                     if(value === '' || value === 'false' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
@@ -353,13 +495,13 @@ var binder = {
                 }
                 break;
         }
-        // subFunc.initBoundNode(node, deps, func, attrName, attrText);
+        setBoundNode(node, deps, func, attrName, attrText);
 
         observe(deps, func);
     },
     list : function(node, propGroup){
         // var template = node.outerHTML;
-        // var context = parse.context(node, node);
+        // var context = parser.context(node, node);
         // node[marker.bind] = context;
 
         // var writeProp = propGroup[0],
@@ -412,42 +554,7 @@ var binder = {
 
 module.exports = binder;
 
-},{"./dom.marker":6,"./dom.parser":7,"./dom.walker":8}],5:[function(require,module,exports){
-/*
-    dom绑定用外挂包
-*/
-
-module.exports = {
-    scan : require('./dom.walker').init().scan,
-    bindContent : function(node){}
-}
-
-
-},{"./dom.walker":8}],6:[function(require,module,exports){
-/*
-    标记
-*/
-var config = require('./config');
-var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
-var prefix = config.DOMPrefix;
-var marker = {
-    'exp' : expPreg //表达式的正则表达式检测
-    ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
-
-    ,'model' : prefix + 'model'//v to m
-    ,'list' : prefix + 'list'//list: tr in table
-    ,'bind' : prefix + 'bind'//scope源
-    ,'if'   : prefix + 'if'//条件判断
-    ,'escape' : prefix + 'escape'//scan外
-    ,'toggle' : prefix + 'toggle'
-    ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
-    ,'boundAttr' : prefix + 'boundAttr' //已经绑定的attr&原值
-    ,'boundText' : prefix + 'boundText' //已经绑定的text&原值
-    ,'boundProp' : prefix + 'boundProp' //已经绑定的props
-};
-
-module.exports = marker;
-},{"./config":3}],7:[function(require,module,exports){
+},{"./dom.marker":6,"./dom.parser":8,"./dom.walker":9,"./kit":17}],8:[function(require,module,exports){
 /*
     各种解析
 */
@@ -533,7 +640,7 @@ var parser = {
 };
 module.exports = parser;
 
-},{"./base":2,"./config":3,"./dom.marker":6,"./expression":11,"./kit":16}],8:[function(require,module,exports){
+},{"./base":2,"./config":3,"./dom.marker":6,"./expression":12,"./kit":17}],9:[function(require,module,exports){
 /*
     dom遍历
 */
@@ -542,7 +649,7 @@ var checkProp;
 var scanQueue = [];
 
 var config = require('./config');
-var marker, binder;
+var marker, observer;
 var expPreg;
 
 var base = require('./base'),
@@ -621,7 +728,7 @@ var check = {
         if(typeof listProp === 'string' && (listProp = marker.inPreg.exec(listProp))){
             node.removeAttribute(marker.list);
             listProp.shift();
-            binder.list(node, listProp);
+            observer.list(node, listProp);
             return true;
         }
     },
@@ -630,12 +737,12 @@ var check = {
     },
     text : function(node){
         if(check.html(node.textContent)){return;}
-        binder.text(node, node.textContent);
+        observer.text(node, node.textContent);
     },
     attr : function(node, html){
         [].forEach.call(node.attributes, function(attributeNode){
             if(expPreg.test(attributeNode.value)){
-                binder.attr(node, attributeNode.value, attributeNode.name);
+                observer.attr(node, attributeNode.value, attributeNode.name);
             }
         });
     },
@@ -647,7 +754,7 @@ var check = {
 module.exports = {
     init : function(){
         marker = require('./dom.marker');
-        binder = require('./dom.binder');
+        observer = require('./dom.observer');
         expPreg = marker.exp;
         return this;
     },
@@ -661,10 +768,13 @@ module.exports = {
             }
             checkProp[prop].push(func);
         });
+    },
+    removeBinder : function(){
+
     }
 };
 
-},{"./base":2,"./config":3,"./dom.binder":4,"./dom.marker":6}],9:[function(require,module,exports){
+},{"./base":2,"./config":3,"./dom.marker":6,"./dom.observer":7}],10:[function(require,module,exports){
 /*
     artTemplate extend
 
@@ -693,7 +803,7 @@ module.exports = {
     register : artTemplate.helper
 };
 
-},{"./expression.filter":10,"./kit":16,"art-template":20}],10:[function(require,module,exports){
+},{"./expression.filter":11,"./kit":17,"art-template":21}],11:[function(require,module,exports){
 /*
     liquid式预设helper外挂包
 */
@@ -865,7 +975,7 @@ module.exports = {
     }
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 /*
     表达式解析外挂包
     expression('a.b.c', {a:xxx}, vm， extraData)
@@ -928,7 +1038,7 @@ expression.parseDeps = parseDeps;
 module.exports = expression;
 
 
-},{"./config":3,"./expression.artTemplate":9,"./kit":16}],12:[function(require,module,exports){
+},{"./config":3,"./expression.artTemplate":10,"./kit":17}],13:[function(require,module,exports){
 /*
     core(object[, config]);
     core(namespace, object[, config]);
@@ -980,7 +1090,7 @@ apiList.forEach(function(method){
         })(method)
     });
 });
-},{"./accessor":1,"./config":3,"./factory":13,"./factory.parser":14,"./kit":16,"./listener":17}],13:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./factory":14,"./factory.parser":15,"./kit":17,"./listener":18}],14:[function(require,module,exports){
 /*
     
 */
@@ -1023,7 +1133,7 @@ lib.fire           = listener.fire;
 lib.destroy        = Accessor.destroy;
 
 
-},{"./accessor":1,"./config":3,"./factory.define":12,"./listener":17}],14:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./factory.define":13,"./listener":18}],15:[function(require,module,exports){
 /*
     构造器的辅助方法
 */
@@ -1093,7 +1203,7 @@ var func = {
 module.exports = func;
 
 
-},{"./accessor":1,"./config":3,"./kit":16}],15:[function(require,module,exports){
+},{"./accessor":1,"./config":3,"./kit":17}],16:[function(require,module,exports){
 /*!
     Σヾ(ﾟДﾟ)ﾉ
 */
@@ -1105,7 +1215,7 @@ base.scan = dom.scan;
 base.bindContent = dom.bindContent;
 
 
-},{"./base":2,"./dom":5,"./expression":11}],16:[function(require,module,exports){
+},{"./base":2,"./dom":5,"./expression":12}],17:[function(require,module,exports){
 var $ = {};
 module.exports = $;
 var config = require('./config');
@@ -1274,7 +1384,7 @@ $.ArrayExtend = (function(){
     ArrayExtend.__proto__ = ArrayExtendProto;    
 })();
 
-},{"./config":3}],17:[function(require,module,exports){
+},{"./config":3}],18:[function(require,module,exports){
 /*
     事件相关
 */
@@ -1377,7 +1487,7 @@ var listener = {
 module.exports = listener;
 var Accessor = require('./accessor');
 
-},{"./accessor":1,"./kit":16}],18:[function(require,module,exports){
+},{"./accessor":1,"./kit":17}],19:[function(require,module,exports){
 /*!
  * artTemplate - Template Engine
  * https://github.com/aui/artTemplate
@@ -2119,7 +2229,7 @@ if (typeof define === 'function') {
 }
 
 })();
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var fs = require('fs');
 var path = require('path');
 
@@ -2205,7 +2315,7 @@ module.exports = function (template) {
 
 	return template;
 }
-},{"fs":21,"path":22}],20:[function(require,module,exports){
+},{"fs":22,"path":23}],21:[function(require,module,exports){
 /*!
  * artTemplate[NodeJS]
  * https://github.com/aui/artTemplate
@@ -2215,9 +2325,9 @@ module.exports = function (template) {
 var node = require('./_node.js');
 var template = require('../dist/template-debug.js');
 module.exports = node(template);
-},{"../dist/template-debug.js":18,"./_node.js":19}],21:[function(require,module,exports){
+},{"../dist/template-debug.js":19,"./_node.js":20}],22:[function(require,module,exports){
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 (function (process){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -2445,7 +2555,7 @@ var substr = 'ab'.substr(-1) === 'b'
 ;
 
 }).call(this,require('_process'))
-},{"_process":23}],23:[function(require,module,exports){
+},{"_process":24}],24:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -2504,4 +2614,4 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}]},{},[15]);
+},{}]},{},[16]);
