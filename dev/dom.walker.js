@@ -6,11 +6,8 @@ var checkProp;
 var scanQueue = [];
 
 var config = require('./config');
-var marker = require('./dom.marker');
-
-var binder = require('./dom.binder');
-
-var expPreg = marker.exp;
+var marker, binder;
+var expPreg;
 
 var base = require('./base'),
     get = base.get,
@@ -100,7 +97,11 @@ var check = {
         binder.text(node, node.textContent);
     },
     attr : function(node, html){
-        var attrs = node.attributes;
+        [].forEach.call(node.attributes, function(attributeNode){
+            if(expPreg.test(attributeNode.value)){
+                binder.attr(node, attributeNode.value, attributeNode.name);
+            }
+        });
     },
     escape : function(node){
 
@@ -108,6 +109,12 @@ var check = {
 }
 
 module.exports = {
+    init : function(){
+        marker = require('./dom.marker');
+        binder = require('./dom.binder');
+        expPreg = marker.exp;
+        return this;
+    },
     scan : scanEngine,
     addBinder : function(props, func){
         if(!checkProp){return;}

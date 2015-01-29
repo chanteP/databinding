@@ -1,5 +1,5 @@
 module.exports = function(grunt) {
-    var fileName = 'note';
+    var fileName = 'mug';
 
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),

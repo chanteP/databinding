@@ -51,7 +51,8 @@ var Accessor = function(nameNS, value){
         return Accessor.check(nameNS);
     }
     if(Accessor.check(nameNS)){
-        storage[nameNS].value = value;
+        storage[nameNS].set(value);
+        // storage[nameNS].value = value;
         return storage[nameNS];
     }
     if(!(this instanceof Accessor)){

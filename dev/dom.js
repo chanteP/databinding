@@ -3,7 +3,7 @@
 */
 
 module.exports = {
-    scan : require('./dom.walker').scan,
+    scan : require('./dom.walker').init().scan,
     bindContent : function(node){}
 }
 

@@ -52,7 +52,8 @@ var Accessor = function(nameNS, value){
         return Accessor.check(nameNS);
     }
     if(Accessor.check(nameNS)){
-        storage[nameNS].value = value;
+        storage[nameNS].set(value);
+        // storage[nameNS].value = value;
         return storage[nameNS];
     }
     if(!(this instanceof Accessor)){
@@ -230,7 +231,7 @@ var config = {
 
     'debug' : 1
 
-    ,'name' : 'note'
+    ,'name' : 'mug'
     ,'mode' : 0 //0:def prop, 1:get()&set()
 
     ,'descMark' : '$'

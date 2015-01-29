@@ -6,7 +6,7 @@ var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)'
 var prefix = config.DOMPrefix;
 var marker = {
     'exp' : expPreg //表达式的正则表达式检测
-    'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/,
+    ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
 
     ,'model' : prefix + 'model'//v to m
     ,'list' : prefix + 'list'//list: tr in table

@@ -7,7 +7,7 @@ var config = {
 
     'debug' : 1
 
-    ,'name' : 'note'
+    ,'name' : 'mug'
     ,'mode' : 0 //0:def prop, 1:get()&set()
 
     ,'descMark' : '$'
