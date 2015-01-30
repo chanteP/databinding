@@ -232,23 +232,23 @@ var config = {
     'debug' : 1
 
     ,'name' : 'mug'
-    ,'mode' : 0 //0:def prop, 1:get()&set()
+    ,'mode' : 0 //暂弃 0:def prop, 1:get()&set()
 
-    ,'descMark' : '$'
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
+    ,'descMark' : '$' //accessor标记
     ,'rootVar' : 'vm' //备用
     ,'extraVar' : '$' //备用
 
     ,'DOMPrefix' : 'nt-'
     ,'DOMCheck' : null //爬dom树中断判断
+    ,'DOMInit' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
     ,'templateRender' : null //模版引擎, te(expression, data)
     ,'templateHelper' : null //模版helper注册
 
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
-    ,'initDOM' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
     ,'contextGlobal' : window 
 
@@ -273,11 +273,26 @@ var $ = require('./kit');
 var find = $.find,
     findAll = $.findAll;
 var base = require('./base'),
-    set = base.set;
+    set = base.set,
+    get = base.get;
 var marker = require('./dom.marker'),
     parser = require('./dom.parser');
 
 var numberPreg = /^[\d\.]+$/;
+
+var checkAccessor = function(model){
+    if(!(model in base.storage)){
+        base(model, get(model));
+    }
+}
+
+var checkModel = function(node){
+    var allModelNode = $.findAll('['+marker.model+']', node);
+    [].forEach.call(allModelNode, function(el){
+        var model = el.getAttribute(marker.model);
+        checkAccessor(model);
+    });
+}
 
 var bindModel = function(e){
     var type = this.type, name = this.name, tagName = this.tagName;
@@ -287,9 +302,7 @@ var bindModel = function(e){
     this[marker.bind] = context;
 
     model = $.parseProp(context, model);
-    if(!(model in base.storage)){
-        base(model, undefined);
-    }
+    checkAccessor(model);
 
     if(name && tagName === 'INPUT'){
         switch (type){
@@ -322,6 +335,7 @@ var bindModel = function(e){
 module.exports = {
     bind : function(node){
         if(!node){return this;}
+        checkModel(node);
         $.evt(node)
             //TODO 绑定太简陋?
             //radio checkbox etc...
@@ -355,12 +369,13 @@ var api = {
 }
 
 window.document.addEventListener('DOMContentLoaded', function(){
-    if(!config.initDOM){return;}
-    if(typeof config.initDOM === 'string'){
-        config.initDOM === 'bind' && api.bindContent(document.body);
-        config.initDOM === 'scan' && api.scan(document.documentElement);
+    var initCfg = config.DOMInit;
+    if(!initCfg){return;}
+    if(typeof initCfg === 'string'){
+        initCfg === 'bind' && api.bindContent(document.body);
+        initCfg === 'scan' && api.scan(document.documentElement);
     }
-    else if(config.initDOM === true){
+    else if(initCfg === true){
         api.bindContent(document.body);
         api.scan(document.documentElement);
     }
@@ -376,16 +391,20 @@ var config = require('./config');
 var expPreg = new RegExp(config.expHead.replace(/([\[\(\|])/g, '\\$1') + '(.*?)' + config.expFoot.replace(/([\[\(\|])/g, '\\$1'), 'm');
 var prefix = config.DOMPrefix;
 var marker = {
-    'exp' : expPreg //表达式的正则表达式检测
+    'prefix' : prefix
+
+    ,'exp' : expPreg //表达式的正则表达式检测
     ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
 
     ,'model' : prefix + 'model'//v to m
     ,'list' : prefix + 'list'//list: tr in table
-    ,'bind' : prefix + 'bind'//scope源
+    ,'bind' : prefix + 'scope'//scope源
+
+    ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
+
     ,'if'   : prefix + 'if'//条件判断
     ,'escape' : prefix + 'escape'//scan外
-    ,'toggle' : prefix + 'toggle'
-    ,'extraData' : prefix + 'extraExpData' //传给expression的额外数据
+
     ,'boundAttr' : prefix + 'boundAttr' //已经绑定的attr&原值
     ,'boundText' : prefix + 'boundText' //已经绑定的text&原值
     ,'boundProp' : prefix + 'boundProp' //已经绑定的props
@@ -476,11 +495,12 @@ var binder = {
                     node.value = value;
                 }
                 break;
-            case 'data-src' : 
+            case marker.prefix + 'src' : 
                 func = function(){
                     if(checkRecycle(node)){return;}
                     node.src = getText(attrText, context, extraData);
                 }
+                node.removeAttribute(marker.prefix + 'src');
                 break;
             default : 
                 func = function(value){
@@ -496,7 +516,6 @@ var binder = {
                 break;
         }
         setBoundNode(node, deps, func, attrName, attrText);
-
         observe(deps, func);
     },
     list : function(node, propGroup){

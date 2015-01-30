@@ -10,12 +10,13 @@ var api = {
 }
 
 window.document.addEventListener('DOMContentLoaded', function(){
-    if(!config.initDOM){return;}
-    if(typeof config.initDOM === 'string'){
-        config.initDOM === 'bind' && api.bindContent(document.body);
-        config.initDOM === 'scan' && api.scan(document.documentElement);
+    var initCfg = config.DOMInit;
+    if(!initCfg){return;}
+    if(typeof initCfg === 'string'){
+        initCfg === 'bind' && api.bindContent(document.body);
+        initCfg === 'scan' && api.scan(document.documentElement);
     }
-    else if(config.initDOM === true){
+    else if(initCfg === true){
         api.bindContent(document.body);
         api.scan(document.documentElement);
     }

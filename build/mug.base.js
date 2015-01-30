@@ -232,23 +232,23 @@ var config = {
     'debug' : 1
 
     ,'name' : 'mug'
-    ,'mode' : 0 //0:def prop, 1:get()&set()
+    ,'mode' : 0 //暂弃 0:def prop, 1:get()&set()
 
-    ,'descMark' : '$'
     ,'expHead' : '{{'
     ,'expFoot' : '}}'
+    ,'descMark' : '$' //accessor标记
     ,'rootVar' : 'vm' //备用
     ,'extraVar' : '$' //备用
 
     ,'DOMPrefix' : 'nt-'
     ,'DOMCheck' : null //爬dom树中断判断
+    ,'DOMInit' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
     ,'templateRender' : null //模版引擎, te(expression, data)
     ,'templateHelper' : null //模版helper注册
 
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
-    ,'initDOM' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
     ,'contextGlobal' : window 
 

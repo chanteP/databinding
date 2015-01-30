@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
+    </head>
+    <body>
+        <div>
+            <div>
+                {{hehe}}
+                <div mug-scope="a">
+                    {{hehe}}
+                    <div mug-scope="a.b">
+                        {{hehe}}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <pre>
+        <script style="display:block;">
+            mug('', {
+                a : {
+                    hehe : '呵呵哒',
+                    b : {
+                        hehe : '什么鬼'
+                    }
+                },
+                hehe : '萌萌哒'
+            });
+        </script>
+        </pre>
+    </body>
+</html>

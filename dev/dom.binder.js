@@ -5,11 +5,26 @@ var $ = require('./kit');
 var find = $.find,
     findAll = $.findAll;
 var base = require('./base'),
-    set = base.set;
+    set = base.set,
+    get = base.get;
 var marker = require('./dom.marker'),
     parser = require('./dom.parser');
 
 var numberPreg = /^[\d\.]+$/;
+
+var checkAccessor = function(model){
+    if(!(model in base.storage)){
+        base(model, get(model));
+    }
+}
+
+var checkModel = function(node){
+    var allModelNode = $.findAll('['+marker.model+']', node);
+    [].forEach.call(allModelNode, function(el){
+        var model = el.getAttribute(marker.model);
+        checkAccessor(model);
+    });
+}
 
 var bindModel = function(e){
     var type = this.type, name = this.name, tagName = this.tagName;
@@ -19,9 +34,7 @@ var bindModel = function(e){
     this[marker.bind] = context;
 
     model = $.parseProp(context, model);
-    if(!(model in base.storage)){
-        base(model, undefined);
-    }
+    checkAccessor(model);
 
     if(name && tagName === 'INPUT'){
         switch (type){
@@ -54,6 +67,7 @@ var bindModel = function(e){
 module.exports = {
     bind : function(node){
         if(!node){return this;}
+        checkModel(node);
         $.evt(node)
             //TODO 绑定太简陋?
             //radio checkbox etc...

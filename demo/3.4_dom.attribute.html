@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
+    </head>
+    <body>
+        <div>
+            <div hehe="{{attr}}">normal</div>
+            <hr />
+            <img mug-src="{{attr}}">src</img>
+            <hr />
+            <div data-xx="{{attr}}">dataset</div>
+            <hr />
+            <div>
+                <input type="checkbox" checked="{{attr}}" value="a" />a<br/>
+                <input type="checkbox" checked="{{attr}}" value="b" />b<br/>
+            </div>
+            <hr />
+            <select>
+                <option value=""></option>
+                <option selected="{{attr}}" value="a">a</option>
+                <option selected="{{attr}}" value="b">b</option>
+            </select>
+            <select value="{{attr}}">
+                <option value="a">a</option>
+                <option value="b">b</option>
+            </select>
+            <hr />
+            <textarea value="textarea {{attr}}"></textarea>
+        </div>
+        <hr />
+        <input mug-model="attr" placeholder="input here" />
+
+        <script>
+        mug.root.attr = 1;
+        // var cur = Date.now();
+        // (function(){
+        //     var f = Date.now() - cur;
+        //     cur = Date.now();
+        //     console.log(f);
+            
+        //     mug.root.attr++;
+        //     setTimeout(arguments.callee, 50);
+        // })();
+        </script>
+    </body>
+</html>

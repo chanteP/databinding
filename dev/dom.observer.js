@@ -81,11 +81,12 @@ var binder = {
                     node.value = value;
                 }
                 break;
-            case 'data-src' : 
+            case marker.prefix + 'src' : 
                 func = function(){
                     if(checkRecycle(node)){return;}
                     node.src = getText(attrText, context, extraData);
                 }
+                node.removeAttribute(marker.prefix + 'src');
                 break;
             default : 
                 func = function(value){
@@ -101,7 +102,6 @@ var binder = {
                 break;
         }
         setBoundNode(node, deps, func, attrName, attrText);
-
         observe(deps, func);
     },
     list : function(node, propGroup){

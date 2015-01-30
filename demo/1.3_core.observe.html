@@ -11,9 +11,6 @@
             prop1 : true,
             prop2 : 321,
             prop3 : {
-                $get : function(){
-                    return this.prop1 + this.prop2;
-                },
                 //内部
                 $change : function(v, ov){
                     console.log('prop3 change : ' + v);

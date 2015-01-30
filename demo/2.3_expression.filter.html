@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$"></script>
+    </head>
+    <body>
+        <pre>
+        <script style="display:block;">
+        var data = {
+            prop1 : 'gsdfgsdfg',
+            prop2 : 321,
+            prop3 : 1
+        };
+        var get = function(exp){
+            var rs = mug.expression(exp, data);
+            console.log(rs);
+        };
+        get('prop1 | size')
+        get('1 + 1')
+        get('prop1 + prop2')
+
+        </script>
+        </pre>
+    </body>
+</html>
