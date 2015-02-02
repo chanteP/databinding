@@ -109,9 +109,16 @@ var main = {
         //elementNode
         if(node.nodeType === 1){
             var html = node.outerHTML;
+            var checkRS;
 
             //外部处理
-            if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
+            if(config.checkNode && node !== originNode){
+                checkRS = config.checkNode(node, originNode);
+                //rs : 1->跳过当前，2->跳过子节点
+                if(checkRS && checkRS !== 2){
+                    return;
+                }
+            }
             //if判断
             if(check.condition(node)){return;}
             //是list则放弃治疗
@@ -122,6 +129,7 @@ var main = {
             check.attr(node, html);
 
             if(node.getAttribute(marker.escape)){return;}
+            if(checkRS === 2){return;}
 
             //解析children
             [].forEach.call(node.childNodes, main.parseNode);
