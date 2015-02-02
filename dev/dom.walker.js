@@ -49,7 +49,8 @@ var walker = function(node, originNode){
     if(node.nodeType === 1){
         var html = node.outerHTML;
         //外部处理
-        if(check.custom(node, originNode)){return;}
+        var checkRS = check.custom(node, originNode);
+        if(checkRS && checkRS !== 2){return;}
         //if判断
         if(check.condition(node)){return;}
         //是list则放弃治疗
@@ -60,6 +61,8 @@ var walker = function(node, originNode){
         check.attr(node, html);
         //escape子节点
         if(check.escape(node)){return;}
+
+        if(checkRS === 2){return;}
 
         //解析children
         [].forEach.call(node.childNodes, function(childNode){
@@ -74,6 +77,7 @@ var walker = function(node, originNode){
 };
 
 var check = {
+    //false | 2 : stopChild | true : stopThis
     custom : function(node, originNode){
         // if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
     },
