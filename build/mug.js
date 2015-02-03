@@ -394,6 +394,7 @@ var marker = {
     'prefix' : prefix
 
     ,'exp' : expPreg //表达式的正则表达式检测
+    ,'expSource' : expPreg.source
     ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
 
     ,'model' : prefix + 'model'//v to m
@@ -424,7 +425,9 @@ var observe = walker.addBinder,
     scan = walker.scan;
 var getText = parser.text;
 
-var contains = $.contains;
+var contains = $.contains,
+    parseProp = $.parseProp,
+    create = $.create;
 //################################################################################################################
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
@@ -452,6 +455,15 @@ var setBoundNode = function(node, deps, func, text, value){
         node[marker.boundProp][dep].push(func);
     });
 }
+var templateFunc = function(template, index, tmpProp, listProp){
+    var listExpPreg = new RegExp(marker.expSource, 'mg'),
+        fieldPreg = new RegExp('(?:\\s|\\b)('+tmpProp+'\\.)', 'mg');
+    return template.replace(listExpPreg, function(match, exp){
+        return match.replace(fieldPreg, function(match, matchContext){
+            return ' ' + listProp + '['+index+'].';
+        });
+    });
+};
 //################################################################################################################
 var binder = {
     //node, attribute
@@ -519,45 +531,44 @@ var binder = {
         observe(deps, func);
     },
     list : function(node, propGroup){
-        // var template = node.outerHTML;
-        // var context = parser.context(node, node);
-        // node[marker.bind] = context;
+        node.removeAttribute(marker.list);
+        propGroup.shift();
+        var template = node.outerHTML;
+        var context = parser.context(node, node);
+        node[marker.bind] = context;
 
-        // var writeProp = propGroup[0],
-        //     useProp = propGroup[1];
+        var tmpProp = propGroup[0],
+            listProp = propGroup[1];
 
-        // var prop = DataBind.parseProp(useProp, context);
+        var listNS = parseProp(listProp, context);
 
-        // //TODO 备用标注
-        // var listMarkEnd = document.createComment('list for ' + useProp + ' as ' + writeProp + ' end'),
-        // // var listMarkEnd = document.createElement('script'),
-        //     listMarkStart = document.createComment('list for ' + useProp + ' as ' + writeProp + 'start'),
-        //     listNodeCollection = [];
+        var listMarkEnd = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' end'),
+            listMarkStart = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' start'),
+            listNodeCollection = [];
 
-        // node.parentNode.insertBefore(listMarkStart, node);
-        // node.parentNode.replaceChild(listMarkEnd, node);
+        node.parentNode.insertBefore(listMarkStart, node);
+        node.parentNode.replaceChild(listMarkEnd, node);
 
-        // observe([prop], function(v, ov, e){
-        //     if(!listMarkEnd.parentNode){return;}
-        //     var list = get(prop);
-        //     if(!(Array.isArray(list))){return;}
-        //     var content = listMarkEnd.parentNode;
-        //     //TODO 增强array功能后这里就不用全部删了再加了
-        //     listNodeCollection.forEach(function(element){
-        //         remove(element);
-        //     });
-        //     listNodeCollection.length = 0;
-        //     list.forEach(function(dataElement, index){
-        //         var element = create(subFunc.templateFunc(template, index, writeProp, useProp));
-        //         element[marker.extraData] = {
-        //             index : index,
-        //             value : dataElement
-        //         };
-        //         content.insertBefore(element, listMarkEnd);
-        //         listNodeCollection.push(element);
-        //         main.scan(element);
-        //     });
-        // });
+        observe([listNS], function(list, ov, e){
+            if(!listMarkEnd.parentNode){return;}
+            if(!(Array.isArray(list))){return;}
+            var content = listMarkEnd.parentNode;
+            //TODO 增强array功能后这里就不用全部删了再加了
+            listNodeCollection.forEach(function(element){
+                remove(element);
+            });
+            listNodeCollection.length = 0;
+            list.forEach(function(dataElement, index){
+                var element = create(templateFunc(template, index, tmpProp, listProp));
+                element[marker.extraData] = {
+                    index : index,
+                    value : dataElement
+                };
+                content.insertBefore(element, listMarkEnd);
+                listNodeCollection.push(element);
+                scan(element);
+            });
+        });
     },
     //textNode
     text : function(node, textContent){
@@ -588,7 +599,7 @@ var base = require('./base'),
     root = base.root;
 
 var expPreg = marker.exp,
-    expSource = expPreg.source;
+    expSource = marker.expSource;
 //################################################################################################################
 var unique = $.unique;
 //################################################################################################################
@@ -669,7 +680,7 @@ var scanQueue = [];
 
 var config = require('./config');
 var marker, observer;
-var expPreg;
+var expPreg, inPreg;
 
 var base = require('./base'),
     get = base.get,
@@ -702,7 +713,7 @@ var scanEngine = function(node, parseOnly){
     }
     checkProp = null;
     if(scanQueue.length){
-        engine(scanQueue.shift());
+        scanEngine(scanQueue.shift());
     }
     parseOnlyWhileScan = false;
 }
@@ -744,9 +755,8 @@ var check = {
     },
     list : function(node){
         var listProp = node.getAttribute(marker.list);
-        if(typeof listProp === 'string' && (listProp = marker.inPreg.exec(listProp))){
-            node.removeAttribute(marker.list);
-            listProp.shift();
+        if(typeof listProp === 'string' && (listProp = inPreg.exec(listProp))){
+            
             observer.list(node, listProp);
             return true;
         }
@@ -775,6 +785,7 @@ module.exports = {
         marker = require('./dom.marker');
         observer = require('./dom.observer');
         expPreg = marker.exp;
+        inPreg = marker.inPreg;
         return this;
     },
     scan : scanEngine,
@@ -1062,6 +1073,7 @@ module.exports = expression;
     core(object[, config]);
     core(namespace, object[, config]);
 */
+var $ = require('./kit');
 var config = require('./config');
 var Accessor = require('./accessor');
 var listener = require('./listener');
@@ -1086,7 +1098,7 @@ var databind = function(nameNS, obj){
     //TODO 强制mode0输出...
     var acc = Accessor.check(nameNS),
         exports = acc.value;
-    if(exports === null || exports === undefined){
+    if($.isSimpleObject(exports)){
         exports = {};
     }
     exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
@@ -1413,6 +1425,26 @@ var merge = $.merge,
     unique = $.unique;
 
 var storage = {};
+
+var fireList = [];
+var collectFireProps = function(nameNS, type){
+    var acc = Accessor.check(nameNS);
+    if(!acc){return;}
+    fireList.push(nameNS);
+    (listener.check(nameNS, type) || []).forEach(function(dep){
+        //依赖
+        if(typeof dep === 'string'){
+            var depAcc = Accessor.check(dep);
+            depAcc.oldValue = depAcc.value;
+            depAcc.value = depAcc.get();
+            //TODO depAcc.set(depAcc.get());
+            collectFireProps(dep);
+        }
+    });
+    if(acc.parentNS !== null && acc.propagation){
+        collectFireProps(acc.parentNS);
+    }
+}
 //################################################################### 
 var listener = {
     'storage' : storage,
@@ -1437,13 +1469,13 @@ var listener = {
         var fireBody = Accessor.check(nameNS);
         if(!fireBody){return;}
 
-        listener._fireList = [];
+        fireList.length = 0;
 
-        listener._getFireProps(nameNS, type);
-        listener._fireList = unique(listener._fireList);
+        collectFireProps(nameNS, type);
+        fireList = unique(fireList);
 
         var evtList, acc, args;
-        listener._fireList.forEach(function(ns){
+        fireList.forEach(function(ns){
             evtList = listener.check(ns, type);
             if(!evtList){return;}
             acc = Accessor.check(ns);
@@ -1461,27 +1493,8 @@ var listener = {
                 evtList[i].apply(acc.context, args);
             }
         });
-        listener._fireList = null;
+        fireList.length = 0;
         return this;
-    },
-    '_fireList' : null,
-    '_getFireProps' : function(nameNS, type){
-        var acc = Accessor.check(nameNS);
-        if(!acc){return;}
-        listener._fireList.push(nameNS);
-        (listener.check(nameNS, type) || []).forEach(function(dep){
-            //依赖
-            if(typeof dep === 'string'){
-                var depAcc = Accessor.check(dep);
-                depAcc.oldValue = depAcc.value;
-                depAcc.value = depAcc.get();
-                //TODO depAcc.set(depAcc.get());
-                listener._getFireProps(dep);
-            }
-        });
-        if(acc.parentNS !== null && acc.propagation){
-            listener._getFireProps(acc.parentNS);
-        }
     },
     //TODO capture
     'add' : function(nameNS, func, evt, capture){
@@ -2578,39 +2591,69 @@ var substr = 'ab'.substr(-1) === 'b'
 // shim for using process in browser
 
 var process = module.exports = {};
-var queue = [];
-var draining = false;
 
-function drainQueue() {
-    if (draining) {
-        return;
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canMutationObserver = typeof window !== 'undefined'
+    && window.MutationObserver;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
     }
-    draining = true;
-    var currentQueue;
-    var len = queue.length;
-    while(len) {
-        currentQueue = queue;
-        queue = [];
-        var i = -1;
-        while (++i < len) {
-            currentQueue[i]();
-        }
-        len = queue.length;
+
+    var queue = [];
+
+    if (canMutationObserver) {
+        var hiddenDiv = document.createElement("div");
+        var observer = new MutationObserver(function () {
+            var queueList = queue.slice();
+            queue.length = 0;
+            queueList.forEach(function (fn) {
+                fn();
+            });
+        });
+
+        observer.observe(hiddenDiv, { attributes: true });
+
+        return function nextTick(fn) {
+            if (!queue.length) {
+                hiddenDiv.setAttribute('yes', 'no');
+            }
+            queue.push(fn);
+        };
     }
-    draining = false;
-}
-process.nextTick = function (fun) {
-    queue.push(fun);
-    if (!draining) {
-        setTimeout(drainQueue, 0);
+
+    if (canPost) {
+        window.addEventListener('message', function (ev) {
+            var source = ev.source;
+            if ((source === window || source === null) && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
     }
-};
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
 
 process.title = 'browser';
 process.browser = true;
 process.env = {};
 process.argv = [];
-process.version = ''; // empty string to avoid regexp issues
 
 function noop() {}
 
@@ -2631,6 +2674,5 @@ process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
-process.umask = function() { return 0; };
 
 },{}]},{},[16]);

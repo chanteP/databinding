@@ -270,6 +270,7 @@ module.exports = config;
     core(object[, config]);
     core(namespace, object[, config]);
 */
+var $ = require('./kit');
 var config = require('./config');
 var Accessor = require('./accessor');
 var listener = require('./listener');
@@ -294,7 +295,7 @@ var databind = function(nameNS, obj){
     //TODO 强制mode0输出...
     var acc = Accessor.check(nameNS),
         exports = acc.value;
-    if(exports === null || exports === undefined){
+    if($.isSimpleObject(exports)){
         exports = {};
     }
     exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
@@ -609,6 +610,26 @@ var merge = $.merge,
     unique = $.unique;
 
 var storage = {};
+
+var fireList = [];
+var collectFireProps = function(nameNS, type){
+    var acc = Accessor.check(nameNS);
+    if(!acc){return;}
+    fireList.push(nameNS);
+    (listener.check(nameNS, type) || []).forEach(function(dep){
+        //依赖
+        if(typeof dep === 'string'){
+            var depAcc = Accessor.check(dep);
+            depAcc.oldValue = depAcc.value;
+            depAcc.value = depAcc.get();
+            //TODO depAcc.set(depAcc.get());
+            collectFireProps(dep);
+        }
+    });
+    if(acc.parentNS !== null && acc.propagation){
+        collectFireProps(acc.parentNS);
+    }
+}
 //################################################################### 
 var listener = {
     'storage' : storage,
@@ -633,13 +654,13 @@ var listener = {
         var fireBody = Accessor.check(nameNS);
         if(!fireBody){return;}
 
-        listener._fireList = [];
+        fireList.length = 0;
 
-        listener._getFireProps(nameNS, type);
-        listener._fireList = unique(listener._fireList);
+        collectFireProps(nameNS, type);
+        fireList = unique(fireList);
 
         var evtList, acc, args;
-        listener._fireList.forEach(function(ns){
+        fireList.forEach(function(ns){
             evtList = listener.check(ns, type);
             if(!evtList){return;}
             acc = Accessor.check(ns);
@@ -657,27 +678,8 @@ var listener = {
                 evtList[i].apply(acc.context, args);
             }
         });
-        listener._fireList = null;
+        fireList.length = 0;
         return this;
-    },
-    '_fireList' : null,
-    '_getFireProps' : function(nameNS, type){
-        var acc = Accessor.check(nameNS);
-        if(!acc){return;}
-        listener._fireList.push(nameNS);
-        (listener.check(nameNS, type) || []).forEach(function(dep){
-            //依赖
-            if(typeof dep === 'string'){
-                var depAcc = Accessor.check(dep);
-                depAcc.oldValue = depAcc.value;
-                depAcc.value = depAcc.get();
-                //TODO depAcc.set(depAcc.get());
-                listener._getFireProps(dep);
-            }
-        });
-        if(acc.parentNS !== null && acc.propagation){
-            listener._getFireProps(acc.parentNS);
-        }
     },
     //TODO capture
     'add' : function(nameNS, func, evt, capture){

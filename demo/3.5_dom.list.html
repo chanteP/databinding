@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
+    </head>
+    <body>
+        <div>
+            <ul>
+                <li mug-list="el in arr1">{{$.value}}</li>
+            </ul>
+        <script>
+        mug('', {
+            arr1 : [1,2,3,4,5]
+        })
+        </script>
+    </body>
+</html>

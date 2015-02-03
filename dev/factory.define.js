@@ -2,6 +2,7 @@
     core(object[, config]);
     core(namespace, object[, config]);
 */
+var $ = require('./kit');
 var config = require('./config');
 var Accessor = require('./accessor');
 var listener = require('./listener');
@@ -26,7 +27,7 @@ var databind = function(nameNS, obj){
     //TODO 强制mode0输出...
     var acc = Accessor.check(nameNS),
         exports = acc.value;
-    if(exports === null || exports === undefined){
+    if($.isSimpleObject(exports)){
         exports = {};
     }
     exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});

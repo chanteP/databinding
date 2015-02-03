@@ -7,7 +7,7 @@ var scanQueue = [];
 
 var config = require('./config');
 var marker, observer;
-var expPreg;
+var expPreg, inPreg;
 
 var base = require('./base'),
     get = base.get,
@@ -40,7 +40,7 @@ var scanEngine = function(node, parseOnly){
     }
     checkProp = null;
     if(scanQueue.length){
-        engine(scanQueue.shift());
+        scanEngine(scanQueue.shift());
     }
     parseOnlyWhileScan = false;
 }
@@ -82,9 +82,8 @@ var check = {
     },
     list : function(node){
         var listProp = node.getAttribute(marker.list);
-        if(typeof listProp === 'string' && (listProp = marker.inPreg.exec(listProp))){
-            node.removeAttribute(marker.list);
-            listProp.shift();
+        if(typeof listProp === 'string' && (listProp = inPreg.exec(listProp))){
+            
             observer.list(node, listProp);
             return true;
         }
@@ -113,6 +112,7 @@ module.exports = {
         marker = require('./dom.marker');
         observer = require('./dom.observer');
         expPreg = marker.exp;
+        inPreg = marker.inPreg;
         return this;
     },
     scan : scanEngine,

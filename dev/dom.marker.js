@@ -8,6 +8,7 @@ var marker = {
     'prefix' : prefix
 
     ,'exp' : expPreg //表达式的正则表达式检测
+    ,'expSource' : expPreg.source
     ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
 
     ,'model' : prefix + 'model'//v to m

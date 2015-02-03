@@ -10,7 +10,9 @@ var observe = walker.addBinder,
     scan = walker.scan;
 var getText = parser.text;
 
-var contains = $.contains;
+var contains = $.contains,
+    parseProp = $.parseProp,
+    create = $.create;
 //################################################################################################################
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
@@ -38,6 +40,15 @@ var setBoundNode = function(node, deps, func, text, value){
         node[marker.boundProp][dep].push(func);
     });
 }
+var templateFunc = function(template, index, tmpProp, listProp){
+    var listExpPreg = new RegExp(marker.expSource, 'mg'),
+        fieldPreg = new RegExp('(?:\\s|\\b)('+tmpProp+'\\.)', 'mg');
+    return template.replace(listExpPreg, function(match, exp){
+        return match.replace(fieldPreg, function(match, matchContext){
+            return ' ' + listProp + '['+index+'].';
+        });
+    });
+};
 //################################################################################################################
 var binder = {
     //node, attribute
@@ -105,45 +116,44 @@ var binder = {
         observe(deps, func);
     },
     list : function(node, propGroup){
-        // var template = node.outerHTML;
-        // var context = parser.context(node, node);
-        // node[marker.bind] = context;
+        node.removeAttribute(marker.list);
+        propGroup.shift();
+        var template = node.outerHTML;
+        var context = parser.context(node, node);
+        node[marker.bind] = context;
 
-        // var writeProp = propGroup[0],
-        //     useProp = propGroup[1];
+        var tmpProp = propGroup[0],
+            listProp = propGroup[1];
 
-        // var prop = DataBind.parseProp(useProp, context);
+        var listNS = parseProp(listProp, context);
 
-        // //TODO 备用标注
-        // var listMarkEnd = document.createComment('list for ' + useProp + ' as ' + writeProp + ' end'),
-        // // var listMarkEnd = document.createElement('script'),
-        //     listMarkStart = document.createComment('list for ' + useProp + ' as ' + writeProp + 'start'),
-        //     listNodeCollection = [];
+        var listMarkEnd = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' end'),
+            listMarkStart = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' start'),
+            listNodeCollection = [];
 
-        // node.parentNode.insertBefore(listMarkStart, node);
-        // node.parentNode.replaceChild(listMarkEnd, node);
+        node.parentNode.insertBefore(listMarkStart, node);
+        node.parentNode.replaceChild(listMarkEnd, node);
 
-        // observe([prop], function(v, ov, e){
-        //     if(!listMarkEnd.parentNode){return;}
-        //     var list = get(prop);
-        //     if(!(Array.isArray(list))){return;}
-        //     var content = listMarkEnd.parentNode;
-        //     //TODO 增强array功能后这里就不用全部删了再加了
-        //     listNodeCollection.forEach(function(element){
-        //         remove(element);
-        //     });
-        //     listNodeCollection.length = 0;
-        //     list.forEach(function(dataElement, index){
-        //         var element = create(subFunc.templateFunc(template, index, writeProp, useProp));
-        //         element[marker.extraData] = {
-        //             index : index,
-        //             value : dataElement
-        //         };
-        //         content.insertBefore(element, listMarkEnd);
-        //         listNodeCollection.push(element);
-        //         main.scan(element);
-        //     });
-        // });
+        observe([listNS], function(list, ov, e){
+            if(!listMarkEnd.parentNode){return;}
+            if(!(Array.isArray(list))){return;}
+            var content = listMarkEnd.parentNode;
+            //TODO 增强array功能后这里就不用全部删了再加了
+            listNodeCollection.forEach(function(element){
+                remove(element);
+            });
+            listNodeCollection.length = 0;
+            list.forEach(function(dataElement, index){
+                var element = create(templateFunc(template, index, tmpProp, listProp));
+                element[marker.extraData] = {
+                    index : index,
+                    value : dataElement
+                };
+                content.insertBefore(element, listMarkEnd);
+                listNodeCollection.push(element);
+                scan(element);
+            });
+        });
     },
     //textNode
     text : function(node, textContent){
