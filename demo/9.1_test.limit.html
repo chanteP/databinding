@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
+    </head>
+    <body>
+        <div id="box"></div>
+        <script>
+        var num = 5000, html = '';
+        while(num--){
+            html += [
+                '<div>'+num,
+                    ' <input mug-model="n'+num+'">',
+                    '<span>{{n'+num+'}}</span>',
+                '</div>'
+            ].join('');
+        }
+        box.innerHTML = html;
+        mug.scan(box);
+        </script>
+    </body>
+</html>
