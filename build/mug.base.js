@@ -1,8 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /*
     存在collection里的每一个单元
-    存了都会进行单向绑定
-    DataBind.storage一览
+    storage一览
 */
 /*
     Accessor
@@ -143,6 +142,11 @@ Accessor.prototype.set = function(value, dirty, force){
     }
     this.oldValue = value;
     this.dirty = false;
+
+    //TODO 性能
+    this.children.forEach(function(ns){
+        Accessor.check(ns).set($.isSimpleObject(value) ? value[ns.split('.').pop()] : undefined);
+    });
 
     if($.isSimpleObject(value)){
         for(var key in value){

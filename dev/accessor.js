@@ -1,7 +1,6 @@
 /*
     存在collection里的每一个单元
-    存了都会进行单向绑定
-    DataBind.storage一览
+    storage一览
 */
 /*
     Accessor
@@ -142,6 +141,11 @@ Accessor.prototype.set = function(value, dirty, force){
     }
     this.oldValue = value;
     this.dirty = false;
+
+    //TODO 性能
+    this.children.forEach(function(ns){
+        Accessor.check(ns).set($.isSimpleObject(value) ? value[ns.split('.').pop()] : undefined);
+    });
 
     if($.isSimpleObject(value)){
         for(var key in value){

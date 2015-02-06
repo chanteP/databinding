@@ -1,8 +1,7 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 /*
     存在collection里的每一个单元
-    存了都会进行单向绑定
-    DataBind.storage一览
+    storage一览
 */
 /*
     Accessor
@@ -143,6 +142,11 @@ Accessor.prototype.set = function(value, dirty, force){
     }
     this.oldValue = value;
     this.dirty = false;
+
+    //TODO 性能
+    this.children.forEach(function(ns){
+        Accessor.check(ns).set($.isSimpleObject(value) ? value[ns.split('.').pop()] : undefined);
+    });
 
     if($.isSimpleObject(value)){
         for(var key in value){
@@ -352,7 +356,7 @@ module.exports = {
         return this;
     },
     unbind : function(){
-
+        //TODO 反正没用到呵呵呵呵呵
     }
 }
 },{"./base":2,"./dom.marker":6,"./dom.parser":8,"./kit":17}],5:[function(require,module,exports){
@@ -367,6 +371,7 @@ var api = {
     bindContent : require('./dom.binder').bind
 }
 
+//TODO readystate检测
 window.document.addEventListener('DOMContentLoaded', function(){
     var initCfg = config.DOMInit;
     if(!initCfg){return;}
@@ -430,6 +435,7 @@ var contains = $.contains,
     create = $.create,
     remove = $.remove;
 //################################################################################################################
+//node回收检测，防爆
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
     if(!contains(document.documentElement, node)){
@@ -442,6 +448,7 @@ var checkRecycle = function(node){
     }
     return false;
 }
+//绑定过的表达式都存在node里面方便回收
 var setBoundNode = function(node, deps, func, text, value){
     node[marker.boundAttr] = node[marker.boundAttr] || {};
     node[marker.boundProp] = node[marker.boundProp] || {};
@@ -456,6 +463,7 @@ var setBoundNode = function(node, deps, func, text, value){
         node[marker.boundProp][dep].push(func);
     });
 }
+//list用模版生成func
 var templateFunc = function(template, index, tmpProp, listProp){
     var listExpPreg = new RegExp(marker.expSource, 'mg'),
         fieldPreg = new RegExp('(?:\\s|\\b)('+tmpProp+'\\.)', 'mg');
@@ -536,7 +544,7 @@ var binder = {
         propGroup.shift();
         var template = node.outerHTML;
         var context = parser.context(node, node);
-        node[marker.bind] = context;
+        // node[marker.bind] = context;
 
         var tmpProp = propGroup[0],
             listProp = propGroup[1];
@@ -571,12 +579,12 @@ var binder = {
                 }
 
                 var element = create(templateFunc(template, i, tmpProp, listProp));
-                var extra = {}
+                var extra = {};
+                extra[tmpProp] = list[i];
                 extra[extraVar] = {
                     index : i,
                     value : list[i]
                 };
-                extra[tmpProp] = list[i];
                 element[marker.extraData] = extra;
 
                 content.insertBefore(element, (function(l, i){
@@ -1267,9 +1275,13 @@ module.exports = func;
 /*!
     Σヾ(ﾟДﾟ)ﾉ
 */
+//基础watch
 var base = require('./base');
+
+//expression表达式解析extend
 base.expression = require('./expression');
 
+//dom双向绑定extend
 var dom = require('./dom');
 base.scan = dom.scan;
 base.bindContent = dom.bindContent;

@@ -16,6 +16,7 @@ var contains = $.contains,
     create = $.create,
     remove = $.remove;
 //################################################################################################################
+//node回收检测，防爆
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
     if(!contains(document.documentElement, node)){
@@ -28,6 +29,7 @@ var checkRecycle = function(node){
     }
     return false;
 }
+//绑定过的表达式都存在node里面方便回收
 var setBoundNode = function(node, deps, func, text, value){
     node[marker.boundAttr] = node[marker.boundAttr] || {};
     node[marker.boundProp] = node[marker.boundProp] || {};
@@ -42,6 +44,7 @@ var setBoundNode = function(node, deps, func, text, value){
         node[marker.boundProp][dep].push(func);
     });
 }
+//list用模版生成func
 var templateFunc = function(template, index, tmpProp, listProp){
     var listExpPreg = new RegExp(marker.expSource, 'mg'),
         fieldPreg = new RegExp('(?:\\s|\\b)('+tmpProp+'\\.)', 'mg');
@@ -122,7 +125,7 @@ var binder = {
         propGroup.shift();
         var template = node.outerHTML;
         var context = parser.context(node, node);
-        node[marker.bind] = context;
+        // node[marker.bind] = context;
 
         var tmpProp = propGroup[0],
             listProp = propGroup[1];
@@ -157,12 +160,12 @@ var binder = {
                 }
 
                 var element = create(templateFunc(template, i, tmpProp, listProp));
-                var extra = {}
+                var extra = {};
+                extra[tmpProp] = list[i];
                 extra[extraVar] = {
                     index : i,
                     value : list[i]
                 };
-                extra[tmpProp] = list[i];
                 element[marker.extraData] = extra;
 
                 content.insertBefore(element, (function(l, i){

@@ -9,6 +9,7 @@ var api = {
     bindContent : require('./dom.binder').bind
 }
 
+//TODO readystate检测
 window.document.addEventListener('DOMContentLoaded', function(){
     var initCfg = config.DOMInit;
     if(!initCfg){return;}
