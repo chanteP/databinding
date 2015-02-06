@@ -44,13 +44,12 @@ var getExpressionPart = function(expressionText){
 var expression = function(expressionText, scope, rootScope, extraData){
     if(expressionText === undefined){return '';}
 
-    var data, root = {}, extra = {};
+    var data, root = {};
     root[rootVar] = rootScope;
-    extra[extraVar] = extraData;
     data = merge(
         scope,
         root,
-        extra
+        extraData
     );
     return engine.render(expressionText, data);
 }

@@ -129,7 +129,6 @@ Accessor.prototype.set = function(value, dirty, force){
         this.arrayChangeLock = true;
     }
 
-
     this.value = value;
     this.value = this.get();
 
@@ -326,7 +325,7 @@ var bindModel = function(e){
     else{
         value = this.value;
     }
-    if(!isNaN(value) && numberPreg.test(value)){
+    if(!isNaN(value) && numberPreg.test(value) && String(value).length <= 16){
         value = +value;
     }
     set(model, value);
@@ -424,10 +423,12 @@ var observe = walker.addBinder,
     unobserve = walker.removeBinder,
     scan = walker.scan;
 var getText = parser.text;
+var extraVar = require('./config').extraVar;
 
 var contains = $.contains,
     parseProp = $.parseProp,
-    create = $.create;
+    create = $.create,
+    remove = $.remove;
 //################################################################################################################
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
@@ -551,23 +552,46 @@ var binder = {
 
         observe([listNS], function(list, ov, e){
             if(!listMarkEnd.parentNode){return;}
-            if(!(Array.isArray(list))){return;}
+            if(!(Array.isArray(list))){
+                list = [];
+            }
             var content = listMarkEnd.parentNode;
-            //TODO 增强array功能后这里就不用全部删了再加了
-            listNodeCollection.forEach(function(element){
-                remove(element);
-            });
-            listNodeCollection.length = 0;
-            list.forEach(function(dataElement, index){
-                var element = create(templateFunc(template, index, tmpProp, listProp));
-                element[marker.extraData] = {
-                    index : index,
-                    value : dataElement
+            //TODO 强化一期完成！！
+            (listNodeCollection.length > list.length ? listNodeCollection : list).forEach(function(tmp, i){
+                if(list[i] === undefined){
+                    listNodeCollection[i] && remove(listNodeCollection[i]);
+                    listNodeCollection[i] = null;
+                    return;
+                }
+                else if(listNodeCollection[i]){
+                    if(listNodeCollection[i][marker.extraData][tmpProp] === list[i]){
+                        return;
+                    }
+                    remove(listNodeCollection[i]);
+                }
+
+                var element = create(templateFunc(template, i, tmpProp, listProp));
+                var extra = {}
+                extra[extraVar] = {
+                    index : i,
+                    value : list[i]
                 };
-                content.insertBefore(element, listMarkEnd);
-                listNodeCollection.push(element);
+                extra[tmpProp] = list[i];
+                element[marker.extraData] = extra;
+
+                content.insertBefore(element, (function(l, i){
+                    while(i >= 0){
+                        if(l[i]){
+                            return l[i].nextSibling;
+                        }
+                        i--;
+                    }
+                    return listMarkEnd;
+                })(listNodeCollection, i-1));
+                listNodeCollection.splice(i, 1, element);
                 scan(element);
             });
+            listNodeCollection.splice(list.length + 1, listNodeCollection.length);
         });
     },
     //textNode
@@ -584,7 +608,7 @@ var binder = {
 
 module.exports = binder;
 
-},{"./dom.marker":6,"./dom.parser":8,"./dom.walker":9,"./kit":17}],8:[function(require,module,exports){
+},{"./config":3,"./dom.marker":6,"./dom.parser":8,"./dom.walker":9,"./kit":17}],8:[function(require,module,exports){
 /*
     各种解析
 */
@@ -722,7 +746,8 @@ var walker = function(node, originNode){
     if(node.nodeType === 1){
         var html = node.outerHTML;
         //外部处理
-        if(check.custom(node, originNode)){return;}
+        var checkRS = check.custom(node, originNode);
+        if(checkRS && checkRS !== 2){return;}
         //if判断
         if(check.condition(node)){return;}
         //是list则放弃治疗
@@ -733,6 +758,8 @@ var walker = function(node, originNode){
         check.attr(node, html);
         //escape子节点
         if(check.escape(node)){return;}
+
+        if(checkRS === 2){return;}
 
         //解析children
         [].forEach.call(node.childNodes, function(childNode){
@@ -747,6 +774,7 @@ var walker = function(node, originNode){
 };
 
 var check = {
+    //false | 2 : stopChild | true : stopThis
     custom : function(node, originNode){
         // if(config.checkNode && node !== originNode && config.checkNode(node, originNode)){return;}
     },
@@ -792,6 +820,7 @@ module.exports = {
     addBinder : function(props, func){
         if(!checkProp){return;}
         props = [].concat(props);
+        if(!props.length){props.push('');}
         props.forEach(function(prop){
             if(!checkProp[prop]){
                 checkProp[prop] = [];
@@ -1052,13 +1081,12 @@ var getExpressionPart = function(expressionText){
 var expression = function(expressionText, scope, rootScope, extraData){
     if(expressionText === undefined){return '';}
 
-    var data, root = {}, extra = {};
+    var data, root = {};
     root[rootVar] = rootScope;
-    extra[extraVar] = extraData;
     data = merge(
         scope,
         root,
-        extra
+        extraData
     );
     return engine.render(expressionText, data);
 }
@@ -1099,10 +1127,10 @@ var databind = function(nameNS, obj){
     var acc = Accessor.check(nameNS),
         exports = acc.value;
     if($.isSimpleObject(exports)){
-        exports = {};
+        exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
+        return exports;
     }
-    exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
-    return exports;
+    return obj;
 }
 
 module.exports = databind;
@@ -1140,6 +1168,7 @@ lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
 
+//TODO 什么鬼
 lib.get = function(nameNS){
     var index, value;
     if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){
@@ -2591,69 +2620,39 @@ var substr = 'ab'.substr(-1) === 'b'
 // shim for using process in browser
 
 var process = module.exports = {};
+var queue = [];
+var draining = false;
 
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canMutationObserver = typeof window !== 'undefined'
-    && window.MutationObserver;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
+function drainQueue() {
+    if (draining) {
+        return;
     }
-
-    var queue = [];
-
-    if (canMutationObserver) {
-        var hiddenDiv = document.createElement("div");
-        var observer = new MutationObserver(function () {
-            var queueList = queue.slice();
-            queue.length = 0;
-            queueList.forEach(function (fn) {
-                fn();
-            });
-        });
-
-        observer.observe(hiddenDiv, { attributes: true });
-
-        return function nextTick(fn) {
-            if (!queue.length) {
-                hiddenDiv.setAttribute('yes', 'no');
-            }
-            queue.push(fn);
-        };
+    draining = true;
+    var currentQueue;
+    var len = queue.length;
+    while(len) {
+        currentQueue = queue;
+        queue = [];
+        var i = -1;
+        while (++i < len) {
+            currentQueue[i]();
+        }
+        len = queue.length;
     }
-
-    if (canPost) {
-        window.addEventListener('message', function (ev) {
-            var source = ev.source;
-            if ((source === window || source === null) && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
+    draining = false;
+}
+process.nextTick = function (fun) {
+    queue.push(fun);
+    if (!draining) {
+        setTimeout(drainQueue, 0);
     }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
+};
 
 process.title = 'browser';
 process.browser = true;
 process.env = {};
 process.argv = [];
+process.version = ''; // empty string to avoid regexp issues
 
 function noop() {}
 
@@ -2674,5 +2673,6 @@ process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
+process.umask = function() { return 0; };
 
 },{}]},{},[16]);

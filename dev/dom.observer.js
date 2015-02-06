@@ -9,10 +9,12 @@ var observe = walker.addBinder,
     unobserve = walker.removeBinder,
     scan = walker.scan;
 var getText = parser.text;
+var extraVar = require('./config').extraVar;
 
 var contains = $.contains,
     parseProp = $.parseProp,
-    create = $.create;
+    create = $.create,
+    remove = $.remove;
 //################################################################################################################
 var checkRecycle = function(node){
     //TODO 总不能一消失就解除绑定吧
@@ -136,23 +138,46 @@ var binder = {
 
         observe([listNS], function(list, ov, e){
             if(!listMarkEnd.parentNode){return;}
-            if(!(Array.isArray(list))){return;}
+            if(!(Array.isArray(list))){
+                list = [];
+            }
             var content = listMarkEnd.parentNode;
-            //TODO 增强array功能后这里就不用全部删了再加了
-            listNodeCollection.forEach(function(element){
-                remove(element);
-            });
-            listNodeCollection.length = 0;
-            list.forEach(function(dataElement, index){
-                var element = create(templateFunc(template, index, tmpProp, listProp));
-                element[marker.extraData] = {
-                    index : index,
-                    value : dataElement
+            //TODO 强化一期完成！！
+            (listNodeCollection.length > list.length ? listNodeCollection : list).forEach(function(tmp, i){
+                if(list[i] === undefined){
+                    listNodeCollection[i] && remove(listNodeCollection[i]);
+                    listNodeCollection[i] = null;
+                    return;
+                }
+                else if(listNodeCollection[i]){
+                    if(listNodeCollection[i][marker.extraData][tmpProp] === list[i]){
+                        return;
+                    }
+                    remove(listNodeCollection[i]);
+                }
+
+                var element = create(templateFunc(template, i, tmpProp, listProp));
+                var extra = {}
+                extra[extraVar] = {
+                    index : i,
+                    value : list[i]
                 };
-                content.insertBefore(element, listMarkEnd);
-                listNodeCollection.push(element);
+                extra[tmpProp] = list[i];
+                element[marker.extraData] = extra;
+
+                content.insertBefore(element, (function(l, i){
+                    while(i >= 0){
+                        if(l[i]){
+                            return l[i].nextSibling;
+                        }
+                        i--;
+                    }
+                    return listMarkEnd;
+                })(listNodeCollection, i-1));
+                listNodeCollection.splice(i, 1, element);
                 scan(element);
             });
+            listNodeCollection.splice(list.length + 1, listNodeCollection.length);
         });
     },
     //textNode

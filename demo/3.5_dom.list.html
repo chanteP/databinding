@@ -5,14 +5,12 @@
         <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
     </head>
     <body>
-        <div>
-            <ul>
-                <li mug-list="el in arr1">{{$.value}}</li>
-            </ul>
+        <ul>
+            <li>123</li>
+            <li mug-list="el in arr1">{{$.value}} - {{el}} - {{$.index}}</li>
+        </ul>
         <script>
-        mug('', {
-            arr1 : [1,2,3,4,5]
-        })
+        var data = mug('arr1', [6,4,2,6,7]);
         </script>
     </body>
 </html>

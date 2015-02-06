@@ -28,10 +28,10 @@ var databind = function(nameNS, obj){
     var acc = Accessor.check(nameNS),
         exports = acc.value;
     if($.isSimpleObject(exports)){
-        exports = {};
+        exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
+        return exports;
     }
-    exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
-    return exports;
+    return obj;
 }
 
 module.exports = databind;

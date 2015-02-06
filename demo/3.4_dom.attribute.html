@@ -30,19 +30,10 @@
             <textarea value="textarea {{attr}}"></textarea>
         </div>
         <hr />
-        <input mug-model="attr" placeholder="input here" />
+        <input mug-model="attr" placeholder="input here" value="{{attr}}" />
 
         <script>
-        mug.root.attr = 1;
-        // var cur = Date.now();
-        // (function(){
-        //     var f = Date.now() - cur;
-        //     cur = Date.now();
-        //     console.log(f - 50 > 10 ? f - 50 : '');
-            
-        //     mug.root.attr++;
-        //     setTimeout(arguments.callee, 50);
-        // })();
+        mug('attr', 1);
         </script>
     </body>
 </html>

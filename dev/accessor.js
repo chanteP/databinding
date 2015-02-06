@@ -128,7 +128,6 @@ Accessor.prototype.set = function(value, dirty, force){
         this.arrayChangeLock = true;
     }
 
-
     this.value = value;
     this.value = this.get();
 

@@ -16,6 +16,7 @@ lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
 
+//TODO 什么鬼
 lib.get = function(nameNS){
     var index, value;
     if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){

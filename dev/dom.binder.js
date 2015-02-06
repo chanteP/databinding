@@ -58,7 +58,7 @@ var bindModel = function(e){
     else{
         value = this.value;
     }
-    if(!isNaN(value) && numberPreg.test(value)){
+    if(!isNaN(value) && numberPreg.test(value) && String(value).length <= 16){
         value = +value;
     }
     set(model, value);

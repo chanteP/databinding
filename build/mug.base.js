@@ -129,7 +129,6 @@ Accessor.prototype.set = function(value, dirty, force){
         this.arrayChangeLock = true;
     }
 
-
     this.value = value;
     this.value = this.get();
 
@@ -296,10 +295,10 @@ var databind = function(nameNS, obj){
     var acc = Accessor.check(nameNS),
         exports = acc.value;
     if($.isSimpleObject(exports)){
-        exports = {};
+        exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
+        return exports;
     }
-    exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
-    return exports;
+    return obj;
 }
 
 module.exports = databind;
@@ -337,6 +336,7 @@ lib.root = Accessor.root;
 lib.storage = Accessor.storage;
 lib.listener = listener.storage;
 
+//TODO 什么鬼
 lib.get = function(nameNS){
     var index, value;
     if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){

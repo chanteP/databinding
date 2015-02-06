@@ -123,6 +123,7 @@ module.exports = {
     addBinder : function(props, func){
         if(!checkProp){return;}
         props = [].concat(props);
+        if(!props.length){props.push('');}
         props.forEach(function(prop){
             if(!checkProp[prop]){
                 checkProp[prop] = [];
