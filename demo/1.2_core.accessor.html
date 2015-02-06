@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.base.js?name=mug&descMark=$&rootVar=vm"></script>
+    </head>
+    <body>
+        <pre>
+        <script type="text/javascript" style="display:block;">
+        var data = {
+            a : {
+                b : 1,
+                c : 3,
+                d : {
+                    f : '123'
+                },
+                g : {
+                    $get : function(vm){
+                        //vm --> root
+                        return this.b + +this.d.f + vm.data.accessor;
+                    }
+                }
+            },
+            accessor : {
+                $value : 1,
+                $set : function(val){
+                    return Math.min(val, 5);
+                }
+            }
+        };
+        mug('data', data);
+
+        //#######################################
+        mug.observe('', function(v, ov, detail){
+            console.log(JSON.stringify(v));
+        });
+
+        (function(){
+            data.accessor++;
+            setTimeout(arguments.callee, 1000);
+        })();
+
+        </script>
+        </pre>
+    </body>
+</html>

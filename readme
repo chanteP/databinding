@@ -1,0 +1,63 @@
+
+#效果预览期望目标等等
+ 
+轻量级javascript数据绑定库。将一个Object转为可观测Object，可设置getter、setter和namespace、change回调、冒泡、解析DOM中的模版等等。
+这里应该是个用法的demo
+#特性
+##DOM驱动
+ 
+无需额外模版直接在DOM中写模版。
+##统一接口、方法
+ 
+少而全的API。
+##Accessor
+ 
+支持设置getter和setter。
+##全局scope
+ 
+通过namespace访问属性。
+ 
+##事件
+ 
+支持绑定change事件、设置自定义事件。
+事件可从namespace冒泡。
+#实现原理
+##core部分
+ 
+维护Accessors、Listeners两个数据结构。通过namespace注册的object将会迭代里面的属性注册到Accessors中，事件绑定的function添加到对应namespace的Listeners中。
+##model -> view 部分
+ 
+通过scan方法从一个DOM节点开始，遍历DOM Tree找到所有带有表达式的文本节点（text node）和属性节点（attribute node），解析表达式里面依赖的属性并找到Accessor，注册对应的事件；当属性改变时修改该节点的值。
+##view -> model部分
+ 
+通过body进行事件代理，根据prefix-model属性代理html控件的input、change事件，触发事件时改变绑定的属性的值。
+#模版引擎
+##外部依赖
+ 
+引用模版引擎作为依赖解析表达式的值，表达式到模版引擎之间加入一个模块作为转接以减少对模版引擎特性的依赖。目前使用artTemplate作为默认的模版引擎。
+##filter
+ 
+内置一套按照liquid基础语法实现的filter。由于artTemplate支持自定义helper所以将filter默认添加到helper里面，也可以在业务使用中继续扩展helper。
+#事件机制
+ 
+事件通过对象中配置$change属性和调用observe方法注册。默认提供属性set、change事件监听并经由namespace进行事件冒泡。observer时可指定事件进行自定义事件的响应。自定义事件的触发<del>目前好像没有这个接口呵呵呵呵呵呵</del>。
+#配置
+ 
+配置可通过config方法和载入前的_config属性进行参数的配置。
+目前可配置的项（默认值）包括：外部使用的全局变量（暂定）、debug模式（false）、使用模式（0:defineProperty, 1:get/set）、指令前缀（暂定vm-）、表达式边界（{{和}}）、DOM扫描中断判断（null）、自动DOM解析和数据绑定（false）等。
+#调试
+ 
+配置中开启debug模式输出解析中的所有错误。
+表达式中使用debug filter可对当前表达式的值进行断点调试。
+#目标&TODO
+##性能优化
+ 
+重新设计数组list功能的算法，优化列表渲染的性能。
+事件响应部分性能优化。
+DOM扩展部分。
+##功能扩展
+ 
+###if else语法
+###dom replace
+###事件句柄
+

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.base.js?name=mug&descMark=$&rootVar=vm"></script>
+    </head>
+    <body>
+        <pre>
+        <script type="text/javascript" style="display:block;">
+        var data = {
+            prop1 : true,
+            prop2 : 321,
+            prop3 : {
+                //内部
+                $change : function(v, ov){
+                    console.log('prop3 change : ' + v);
+                }
+            }
+        };
+        mug('data', data);
+
+        //#######################################
+        //外部
+        data.observe('prop2', function(v, ov, detail){
+            console.log('prop2 change : ', v);
+        });
+
+        (function(num){
+            data.prop2++;
+            num > 0 && setTimeout(arguments.callee, 1000, --num);
+        })(10);
+
+        </script>
+        </pre>
+    </body>
+</html>

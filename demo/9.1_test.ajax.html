@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
+    </head>
+    <body>
+        <div mug-scope="ajax.rs">
+            <span>{{isSuccess | toString}}</span><br />
+            <span>{{msg}}</span>
+        </div>
+        <script>
+            var ajax = mug('ajax', {
+                rs : {
+                    isSuccess : null,
+                    msg : 'hehe'
+                }
+            });
+
+            setTimeout(function(){
+                ajax.rs = {
+                    isSuccess : false,
+                    msg : 'xxxxx error'
+                }
+            }, 1000);
+
+        </script>
+    </body>
+</html>
