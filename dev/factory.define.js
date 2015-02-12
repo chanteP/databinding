@@ -14,14 +14,15 @@ var parseProp = require('./kit').parseProp;
 var register = parser.register,
     build = parser.build;
 //################################################################################################################
-var databind = function(nameNS, obj){
+var databind = function(nameNS, obj, cfg){
     //第一个参数是否namescpace
     if(typeof nameNS !== 'string'){
+        cfg = obj;
         obj = nameNS;
         nameNS = '';
     }
     var base = build(nameNS, obj);
-    register('', base);
+    register(nameNS, '', base, cfg);
     this.name = this._name = nameNS;
 
     //TODO 强制mode0输出...

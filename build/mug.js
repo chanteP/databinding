@@ -17,16 +17,21 @@ var storage = {};
 //################################################################################################
 var parseProp = $.parseProp,
     ArrayExtend = $.ArrayExtend;
+
 //TODO 完善。获取function中的依赖
 var parseDeps = function(base, func){
     if(typeof func !== 'function'){return;}
+    var rootVar = config.rootVar;
     var code = func.toString()
         .replace(/^\s*\/\*[\s\S]*?\*\/\s*$/mg, '')
         .replace(/^\s*\/\/.*$/mg, '')
-        .replace(/(this|vm)\.[\w\.]+(\(|\s*\=)/mg, '')
-        .replace(/\bthis\b/g, 'vm.' + base.parentNS);
+        .replace(new RegExp('(this|'+rootVar+')\\.[\\w\\.]+(\\(|\\s*\\=)', 'mg'), '')
+        .replace(/\bthis\b/g, rootVar + '.' + base.parentNS);
+        // .replace(/(this|vm)\.[\w\.]+(\(|\s*\=)/mg, '')
+        // .replace(/\bthis\b/g, 'vm.' + base.parentNS);
 
-    var contextReg = /\bvm\.([\w|\.]+)\b/g;
+    // var contextReg = /\bvm\.([\w|\.]+)\b/g;
+    var contextReg = new RegExp('\\b'+rootVar+'\\.([\\w|\\.]+)\\b', 'g');
     var deps = [], match;
     while ((match = contextReg.exec(code))) {
         if (match[1]) {
@@ -45,19 +50,23 @@ var parseDeps = function(base, func){
         nameNS, value : 赋值
         new
 */
-
-var Accessor = function(nameNS, value){
+var Accessor = function(nameNS, value, cfg){
+    //单参数检查是否存在
     if(arguments.length === 1){
         return Accessor.check(nameNS);
     }
+    //如果存在则修改值和配置
     if(Accessor.check(nameNS)){
         storage[nameNS].set(value);
         // storage[nameNS].value = value;
+        storage[nameNS].config(cfg);
         return storage[nameNS];
     }
+    //不是new出来的孩子不要
     if(!(this instanceof Accessor)){
-        return new Accessor(nameNS, value);
+        return new Accessor(nameNS, value, cfg);
     }
+    //new一个咯
     var props = nameNS.split('.'), 
         name = props.pop(),
         isTop = nameNS === '',
@@ -89,6 +98,7 @@ var Accessor = function(nameNS, value){
         this.parent[this.name] = this.value;
     }
     storage[this.nameNS] = this;
+    this.config(cfg);
 }
 
 Accessor.root = root;
@@ -131,10 +141,11 @@ Accessor.prototype.set = function(value, dirty, force){
     this.value = value;
     this.value = this.get();
 
+    //原始模式手动维持数值
     if(this.parent && config.mode){
         this.parent[this.name] = value;
     }
-    //children
+
     dirty = this.dirty || dirty;
     if(!dirty){
         listener.fire(this.nameNS, 'set');
@@ -156,6 +167,11 @@ Accessor.prototype.set = function(value, dirty, force){
         }
     }
     return value;
+}
+//修改配置
+Accessor.prototype.config = function(cfg){
+    if(!cfg){return;}
+    if(cfg.context){this.context = cfg.context;}
 }
 //mode=0 defineproperty绑定对象属性用
 //TODO destroy释放
@@ -188,7 +204,7 @@ Accessor.prototype.setProp = function(desc){
     if(desc.get){
         parseDeps(this, desc.get);
         this.get = function(){
-            return desc.get.call(this.parent, root);
+            return desc.get.call(this.context, root);
         }
     }
     if(desc.change){
@@ -203,6 +219,7 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
+//生成根节点
 new Accessor('', root);
 //################################################################################################
 module.exports = Accessor;
@@ -243,12 +260,12 @@ var config = {
     ,'rootVar' : 'vm' //备用
     ,'extraVar' : '$' //备用
 
-    ,'DOMPrefix' : 'nt-'
+    ,'DOMPrefix' : 'mug-' //前缀标记
     ,'DOMCheck' : null //爬dom树中断判断
     ,'DOMInit' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
 
-    ,'templateRender' : null //模版引擎, te(expression, data)
-    ,'templateHelper' : null //模版helper注册
+    ,'templateRender' : null //备用 模版引擎, te(expression, data)
+    ,'templateHelper' : null //备用 模版helper注册
 
     ,'propagation' : true
     ,'propagationType' : ['change'] //暂弃
@@ -527,6 +544,7 @@ var binder = {
                 func = function(value){
                     if(checkRecycle(node)){return;}
                     value = getText(attrText, context, extraData);
+                    //TODO 剩几个保留原来的值好一点
                     if(value === '' || value === 'false' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
@@ -549,7 +567,7 @@ var binder = {
         var tmpProp = propGroup[0],
             listProp = propGroup[1];
 
-        var listNS = parseProp(listProp, context);
+        var listNS = parseProp(context, listProp);
 
         var listMarkEnd = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' end'),
             listMarkStart = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' start'),
@@ -1050,10 +1068,12 @@ module.exports = {
 */
 var $ = require('./kit');
 var config = require('./config');
-
+var filters = require('./expression.filter');
 var expressionEngine = require('./expression.artTemplate'),
     engine = {
+        //接入式模版引擎表达式解析器，render(expressionText, dataObject)
         render : config.templateRender || expressionEngine.render,
+        //接入式模版引擎表达式helper注册方法
         register : config.templateHelper || expressionEngine.register
     };
 
@@ -1098,13 +1118,14 @@ var expression = function(expressionText, scope, rootScope, extraData){
     );
     return engine.render(expressionText, data);
 }
+expression.filters = filters;
 expression.register = engine.register;
 expression.parseDeps = parseDeps;
 //################################################################################################################
 module.exports = expression;
 
 
-},{"./config":3,"./expression.artTemplate":10,"./kit":17}],13:[function(require,module,exports){
+},{"./config":3,"./expression.artTemplate":10,"./expression.filter":11,"./kit":17}],13:[function(require,module,exports){
 /*
     core(object[, config]);
     core(namespace, object[, config]);
@@ -1121,14 +1142,15 @@ var parseProp = require('./kit').parseProp;
 var register = parser.register,
     build = parser.build;
 //################################################################################################################
-var databind = function(nameNS, obj){
+var databind = function(nameNS, obj, cfg){
     //第一个参数是否namescpace
     if(typeof nameNS !== 'string'){
+        cfg = obj;
         obj = nameNS;
         nameNS = '';
     }
     var base = build(nameNS, obj);
-    register('', base);
+    register(nameNS, '', base, cfg);
     this.name = this._name = nameNS;
 
     //TODO 强制mode0输出...
@@ -1236,15 +1258,16 @@ var func = {
         return desc;
     },
     //nameNS注册到acc
-    register : function(baseNS, obj){
+    register : function(nameNS, curNS, obj, cfg){
         var desc = func.getDesc(obj), 
             base,
-            data = desc.value;
-        base = Accessor.check(baseNS) || new Accessor(baseNS, data);
+            data = desc.value, 
+            curCfg = curNS.indexOf(nameNS) === 0 ? cfg : {};
+        base = Accessor.check(curNS) || new Accessor(curNS, data, curCfg);
         if(isSimpleObject(data)){
             for(var key in data){
                 if(!data.hasOwnProperty(key)){continue;}
-                func.register(base.parseProp(key), data[key]);
+                func.register(nameNS, base.parseProp(key), data[key], cfg);
             }
         }
         base.setProp(desc);

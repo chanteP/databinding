@@ -5,7 +5,7 @@
         <script src="../build/mug.js?name=mug&descMark=$&rootVar=vm&extraVar=$&DOMPrefix=mug-&"></script>
     </head>
     <body>
-        <ul>
+        <ul mug-scope="a">
             <li>123</li>
             <li mug-list="el in arr1">{{$.value}} - {{el}} - {{$.index}}</li>
         </ul>

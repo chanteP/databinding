@@ -16,16 +16,21 @@ var storage = {};
 //################################################################################################
 var parseProp = $.parseProp,
     ArrayExtend = $.ArrayExtend;
+
 //TODO 完善。获取function中的依赖
 var parseDeps = function(base, func){
     if(typeof func !== 'function'){return;}
+    var rootVar = config.rootVar;
     var code = func.toString()
         .replace(/^\s*\/\*[\s\S]*?\*\/\s*$/mg, '')
         .replace(/^\s*\/\/.*$/mg, '')
-        .replace(/(this|vm)\.[\w\.]+(\(|\s*\=)/mg, '')
-        .replace(/\bthis\b/g, 'vm.' + base.parentNS);
+        .replace(new RegExp('(this|'+rootVar+')\\.[\\w\\.]+(\\(|\\s*\\=)', 'mg'), '')
+        .replace(/\bthis\b/g, rootVar + '.' + base.parentNS);
+        // .replace(/(this|vm)\.[\w\.]+(\(|\s*\=)/mg, '')
+        // .replace(/\bthis\b/g, 'vm.' + base.parentNS);
 
-    var contextReg = /\bvm\.([\w|\.]+)\b/g;
+    // var contextReg = /\bvm\.([\w|\.]+)\b/g;
+    var contextReg = new RegExp('\\b'+rootVar+'\\.([\\w|\\.]+)\\b', 'g');
     var deps = [], match;
     while ((match = contextReg.exec(code))) {
         if (match[1]) {
@@ -44,19 +49,23 @@ var parseDeps = function(base, func){
         nameNS, value : 赋值
         new
 */
-
-var Accessor = function(nameNS, value){
+var Accessor = function(nameNS, value, cfg){
+    //单参数检查是否存在
     if(arguments.length === 1){
         return Accessor.check(nameNS);
     }
+    //如果存在则修改值和配置
     if(Accessor.check(nameNS)){
         storage[nameNS].set(value);
         // storage[nameNS].value = value;
+        storage[nameNS].config(cfg);
         return storage[nameNS];
     }
+    //不是new出来的孩子不要
     if(!(this instanceof Accessor)){
-        return new Accessor(nameNS, value);
+        return new Accessor(nameNS, value, cfg);
     }
+    //new一个咯
     var props = nameNS.split('.'), 
         name = props.pop(),
         isTop = nameNS === '',
@@ -88,6 +97,7 @@ var Accessor = function(nameNS, value){
         this.parent[this.name] = this.value;
     }
     storage[this.nameNS] = this;
+    this.config(cfg);
 }
 
 Accessor.root = root;
@@ -130,10 +140,11 @@ Accessor.prototype.set = function(value, dirty, force){
     this.value = value;
     this.value = this.get();
 
+    //原始模式手动维持数值
     if(this.parent && config.mode){
         this.parent[this.name] = value;
     }
-    //children
+
     dirty = this.dirty || dirty;
     if(!dirty){
         listener.fire(this.nameNS, 'set');
@@ -155,6 +166,11 @@ Accessor.prototype.set = function(value, dirty, force){
         }
     }
     return value;
+}
+//修改配置
+Accessor.prototype.config = function(cfg){
+    if(!cfg){return;}
+    if(cfg.context){this.context = cfg.context;}
 }
 //mode=0 defineproperty绑定对象属性用
 //TODO destroy释放
@@ -187,7 +203,7 @@ Accessor.prototype.setProp = function(desc){
     if(desc.get){
         parseDeps(this, desc.get);
         this.get = function(){
-            return desc.get.call(this.parent, root);
+            return desc.get.call(this.context, root);
         }
     }
     if(desc.change){
@@ -202,6 +218,7 @@ Accessor.destroy = Accessor.prototype.destroy = function(nameNS){
         delete Accessor.storage[acc.nameNS];
     }
 }
+//生成根节点
 new Accessor('', root);
 //################################################################################################
 module.exports = Accessor;

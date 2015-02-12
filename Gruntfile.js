@@ -4,9 +4,9 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         browserify: {
-            core: {
+            main: {
                 src : ['dev/init.js'],
-                dest : 'build/'+fileName+'.js'
+                dest : 'build/'+fileName+'.js',
             },
             base: {
                 src : ['dev/base.js'],
@@ -23,16 +23,19 @@ module.exports = function(grunt) {
             },
         },
         uglify: {
-            core: {
-                options : {
-                    sourceMap : true,
+            main: {
+                options: {
+                    compress: {
+                        dead_code: true,
+                        drop_debugger : false
+                    }
                 },
                 src : ['build/'+fileName+'.js'],
                 dest : 'build/'+fileName+'.min.js'
             },
             base: {
                 options : {
-                    sourceMap : true,
+                    // sourceMap : true,
                 },
                 src : ['build/'+fileName+'.base.js'],
                 dest : 'build/'+fileName+'.base.min.js'

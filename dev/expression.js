@@ -5,10 +5,12 @@
 */
 var $ = require('./kit');
 var config = require('./config');
-
+var filters = require('./expression.filter');
 var expressionEngine = require('./expression.artTemplate'),
     engine = {
+        //接入式模版引擎表达式解析器，render(expressionText, dataObject)
         render : config.templateRender || expressionEngine.render,
+        //接入式模版引擎表达式helper注册方法
         register : config.templateHelper || expressionEngine.register
     };
 
@@ -53,6 +55,7 @@ var expression = function(expressionText, scope, rootScope, extraData){
     );
     return engine.render(expressionText, data);
 }
+expression.filters = filters;
 expression.register = engine.register;
 expression.parseDeps = parseDeps;
 //################################################################################################################

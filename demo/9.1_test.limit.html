@@ -7,7 +7,7 @@
     <body>
         <div id="box"></div>
         <script>
-        var num = 5000, html = '';
+        var num = 10000, html = '', delay = 0;
         while(num--){
             html += [
                 '<div>'+num,
@@ -15,9 +15,18 @@
                     '<span>{{n'+num+'}}</span>',
                 '</div>'
             ].join('');
+            if(num % 500 === 0){
+                (function(html, num){
+                    setTimeout(function(){
+                        var d = document.createElement('div');
+                        d.innerHTML = html;
+                        html = '';
+                        box.appendChild(d);
+                        if(!num) mug.scan(d);
+                    }, delay += 500);
+                })(html, num);
+            }
         }
-        box.innerHTML = html;
-        mug.scan(box);
         </script>
     </body>
 </html>

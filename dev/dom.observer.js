@@ -108,6 +108,7 @@ var binder = {
                 func = function(value){
                     if(checkRecycle(node)){return;}
                     value = getText(attrText, context, extraData);
+                    //TODO 剩几个保留原来的值好一点
                     if(value === '' || value === 'false' || value === 'null' || value === 'undefined'){
                         node.removeAttribute(attrName);
                     }
@@ -130,7 +131,7 @@ var binder = {
         var tmpProp = propGroup[0],
             listProp = propGroup[1];
 
-        var listNS = parseProp(listProp, context);
+        var listNS = parseProp(context, listProp);
 
         var listMarkEnd = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' end'),
             listMarkStart = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' start'),

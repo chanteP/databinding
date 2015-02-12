@@ -32,15 +32,16 @@ var func = {
         return desc;
     },
     //nameNS注册到acc
-    register : function(baseNS, obj){
+    register : function(nameNS, curNS, obj, cfg){
         var desc = func.getDesc(obj), 
             base,
-            data = desc.value;
-        base = Accessor.check(baseNS) || new Accessor(baseNS, data);
+            data = desc.value, 
+            curCfg = curNS.indexOf(nameNS) === 0 ? cfg : {};
+        base = Accessor.check(curNS) || new Accessor(curNS, data, curCfg);
         if(isSimpleObject(data)){
             for(var key in data){
                 if(!data.hasOwnProperty(key)){continue;}
-                func.register(base.parseProp(key), data[key]);
+                func.register(nameNS, base.parseProp(key), data[key], cfg);
             }
         }
         base.setProp(desc);
