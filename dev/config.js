@@ -18,7 +18,8 @@ var config = {
 
     ,'DOMPrefix' : 'mug-' //前缀标记
     ,'DOMCheck' : null //爬dom树中断判断
-    ,'DOMInit' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
+    ,'DOMBindInit' : true // view -> model
+    ,'DOMScanInit' : true // view解析 auto : mutation
 
     ,'templateRender' : null //备用 模版引擎, te(expression, data)
     ,'templateHelper' : null //备用 模版helper注册
