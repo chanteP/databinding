@@ -13,13 +13,14 @@
             </ul>
         </div>
         <script>
-            var ajax = mug({
+            var ajax = {
                 rs : {
                     isSuccess : null,
                     data : null,
                     msg : 'hehe'
                 }
-            });
+            };
+            mug(ajax);
 
             setTimeout(function(){
                 ajax.rs = {

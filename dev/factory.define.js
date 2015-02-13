@@ -9,45 +9,42 @@ var listener = require('./listener');
 var parser = require('./factory.parser');
 
 var extendAPI = {};
+var aiID = (new Date()).getTime();
 //################################################################################################################
 var parseProp = require('./kit').parseProp;
 var register = parser.register,
     build = parser.build;
+
+var getAIID = function(){
+    return 'mug_static_data_' + aiID++;
+}
 //################################################################################################################
-var databind = function(nameNS, obj, cfg){
+var core = module.exports = function(nameNS, obj, cfg){
+    //还是加个new包装吧
+    if(!(this instanceof core)){
+        return new core(nameNS, obj, cfg);
+    }
     //第一个参数是否namescpace
+    if(nameNS === null){
+        nameNS = getAIID();
+    }
     if(typeof nameNS !== 'string'){
         cfg = obj;
         obj = nameNS;
         nameNS = '';
     }
     var base = build(nameNS, obj);
-    register(nameNS, '', base, cfg);
-    this.name = this._name = nameNS;
+    register(nameNS, '', base, base, cfg);
 
-    //TODO 强制mode0输出...
-    var acc = Accessor.check(nameNS),
-        exports = acc.value;
-    if($.isSimpleObject(exports)){
-        exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
-        return exports;
-    }
-    return obj;
+    this.name = nameNS;
+    this.value = Accessor.check(nameNS).value;
 }
 
-module.exports = databind;
 //define后抛出的api
 var apiList = ['get', 'set', 'observe', 'unobserve', 'fire'];
-
 apiList.forEach(function(method){
-    Object.defineProperty(extendAPI, method, {
-        enumerable : false,
-        writable : true,
-        value : (function(method){
-            return function(){
-                arguments[0] = parseProp(this._name, arguments[0]);
-                require('./factory')[method].apply(this, arguments);
-            };
-        })(method)
-    });
+    core.prototype[method] = function(){
+        arguments[0] = parseProp(this.name, arguments[0]);
+        return require('./factory')[method].apply(this, arguments);
+    };
 });

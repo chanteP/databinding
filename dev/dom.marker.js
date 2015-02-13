@@ -9,7 +9,7 @@ var marker = {
 
     ,'exp' : expPreg //表达式的正则表达式检测
     ,'expSource' : expPreg.source
-    ,'inPreg' : /([\w\.]+)\s+in\s+([\w\.]+)/
+    ,'inPreg' : /^\s*([\w\.]+)\s+in\s+([\w\.]+|\[[\w\.\,\"]*\])/
 
     ,'model' : prefix + 'model'//v to m
     ,'list' : prefix + 'list'//list: tr in table

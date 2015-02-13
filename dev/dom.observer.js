@@ -5,6 +5,7 @@ var $ = require('./kit');
 var walker = require('./dom.walker'),
     parser = require('./dom.parser'),
     marker = require('./dom.marker');
+var define = require('./factory');
 var observe = walker.addBinder,
     unobserve = walker.removeBinder,
     scan = walker.scan;
@@ -54,6 +55,12 @@ var templateFunc = function(template, index, tmpProp, listProp){
         });
     });
 };
+//list用临时声明
+var listPropDefine = function(listProp){
+    var data = listProp.slice(1, -1).split(',');
+    //TODO 要去掉字符的引号么
+    define(null, data);
+}
 //################################################################################################################
 var binder = {
     //node, attribute
@@ -131,6 +138,11 @@ var binder = {
         var tmpProp = propGroup[0],
             listProp = propGroup[1];
 
+        //listprop为固定数组［］
+        if(listProp[0] === '['){
+            listProp = listPropDefine(listProp);
+        }
+
         var listNS = parseProp(context, listProp);
 
         var listMarkEnd = document.createComment('list for ' + listProp + ' as ' + tmpProp + ' end'),
@@ -197,3 +209,4 @@ var binder = {
 }
 
 module.exports = binder;
+    

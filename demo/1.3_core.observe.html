@@ -17,11 +17,11 @@
                 }
             }
         };
-        mug('data', data);
+        ;
 
         //#######################################
         //外部
-        data.observe('prop2', function(v, ov, detail){
+        mug('data', data).observe('prop2', function(v, ov, detail){
             console.log('prop2 change : ', v);
         });
 

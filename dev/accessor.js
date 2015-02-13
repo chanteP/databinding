@@ -174,10 +174,10 @@ Accessor.prototype.config = function(cfg){
 }
 //mode=0 defineproperty绑定对象属性用
 //TODO destroy释放
-Accessor.prototype.bindProp = function(){
+Accessor.prototype.bindProp = function(obj){
     if(this.mode || !$.isSimpleObject(this.parent)){return;}
     var self = this;
-    Object.defineProperty(this.parent, this.name, {
+    Object.defineProperty(obj || this.parent, this.name, {
         set : function(value){
             return self.set(value);
         },
@@ -185,7 +185,7 @@ Accessor.prototype.bindProp = function(){
             return self.get();
         }
     });
-    this.parent[this.name] = this.value;
+    (obj || this.parent)[this.name] = this.value;
 }
 //生成propNS
 Accessor.prototype.parseProp = function(prop){

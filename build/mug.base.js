@@ -175,10 +175,10 @@ Accessor.prototype.config = function(cfg){
 }
 //mode=0 defineproperty绑定对象属性用
 //TODO destroy释放
-Accessor.prototype.bindProp = function(){
+Accessor.prototype.bindProp = function(obj){
     if(this.mode || !$.isSimpleObject(this.parent)){return;}
     var self = this;
-    Object.defineProperty(this.parent, this.name, {
+    Object.defineProperty(obj || this.parent, this.name, {
         set : function(value){
             return self.set(value);
         },
@@ -186,7 +186,7 @@ Accessor.prototype.bindProp = function(){
             return self.get();
         }
     });
-    this.parent[this.name] = this.value;
+    (obj || this.parent)[this.name] = this.value;
 }
 //生成propNS
 Accessor.prototype.parseProp = function(prop){
@@ -262,7 +262,8 @@ var config = {
 
     ,'DOMPrefix' : 'mug-' //前缀标记
     ,'DOMCheck' : null //爬dom树中断判断
-    ,'DOMInit' : true //DOMContentLoaded执行状况 true:既绑定model代理又scan document root节点, 'bind':只绑定model代理, 'scan':只scan root节点, false:啥都不干 
+    ,'DOMBindInit' : true // view -> model
+    ,'DOMScanInit' : true // view解析 auto : mutation
 
     ,'templateRender' : null //备用 模版引擎, te(expression, data)
     ,'templateHelper' : null //备用 模版helper注册
@@ -297,47 +298,44 @@ var listener = require('./listener');
 var parser = require('./factory.parser');
 
 var extendAPI = {};
+var aiID = (new Date()).getTime();
 //################################################################################################################
 var parseProp = require('./kit').parseProp;
 var register = parser.register,
     build = parser.build;
+
+var getAIID = function(){
+    return 'mug_static_data_' + aiID++;
+}
 //################################################################################################################
-var databind = function(nameNS, obj, cfg){
+var core = module.exports = function(nameNS, obj, cfg){
+    //还是加个new包装吧
+    if(!(this instanceof core)){
+        return new core(nameNS, obj, cfg);
+    }
     //第一个参数是否namescpace
+    if(nameNS === null){
+        nameNS = getAIID();
+    }
     if(typeof nameNS !== 'string'){
         cfg = obj;
         obj = nameNS;
         nameNS = '';
     }
     var base = build(nameNS, obj);
-    register(nameNS, '', base, cfg);
-    this.name = this._name = nameNS;
+    register(nameNS, '', base, base, cfg);
 
-    //TODO 强制mode0输出...
-    var acc = Accessor.check(nameNS),
-        exports = acc.value;
-    if($.isSimpleObject(exports)){
-        exports.__proto__ = Object.create(extendAPI, {'_name':{'value' : nameNS}});
-        return exports;
-    }
-    return obj;
+    this.name = nameNS;
+    this.value = Accessor.check(nameNS).value;
 }
 
-module.exports = databind;
 //define后抛出的api
 var apiList = ['get', 'set', 'observe', 'unobserve', 'fire'];
-
 apiList.forEach(function(method){
-    Object.defineProperty(extendAPI, method, {
-        enumerable : false,
-        writable : true,
-        value : (function(method){
-            return function(){
-                arguments[0] = parseProp(this._name, arguments[0]);
-                require('./factory')[method].apply(this, arguments);
-            };
-        })(method)
-    });
+    core.prototype[method] = function(){
+        arguments[0] = parseProp(this.name, arguments[0]);
+        return require('./factory')[method].apply(this, arguments);
+    };
 });
 },{"./accessor":1,"./config":3,"./factory":5,"./factory.parser":6,"./kit":7,"./listener":8}],5:[function(require,module,exports){
 /*
@@ -418,21 +416,26 @@ var func = {
         return desc;
     },
     //nameNS注册到acc
-    register : function(nameNS, curNS, obj, cfg){
+    //TODO 卧槽这里改得好乱
+    register : function(nameNS, curNS, obj, parentObj, cfg){
         var desc = func.getDesc(obj), 
             base,
-            data = desc.value, 
-            curCfg = curNS.indexOf(nameNS) === 0 ? cfg : {};
+            data = desc.value,
+            selfStart = curNS.indexOf(nameNS) === 0,
+            curCfg = selfStart ? cfg : {};
+        //if(acc.value !== data)
         base = Accessor.check(curNS) || new Accessor(curNS, data, curCfg);
+        //确保注册的对象有绑定
+        // selfStart && obj !== parentObj && base.bindProp(parentObj);
         if(isSimpleObject(data)){
             for(var key in data){
                 if(!data.hasOwnProperty(key)){continue;}
-                func.register(nameNS, base.parseProp(key), data[key], cfg);
+                func.register(nameNS, base.parseProp(key), data[key], data, cfg);
             }
         }
         base.setProp(desc);
         //TODO 强制mode0
-        base.bindProp();
+        base.bindProp(parentObj);
     },
     //build root
     build : function(nameNS, obj){

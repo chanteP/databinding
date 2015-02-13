@@ -28,8 +28,10 @@
                 }
             }
         };
-        mug('data', data);
+        var obj = mug('data', data);
 
+        // obj.set()
+        // obj.get()
         //#######################################
         mug.observe('', function(v, ov, detail){
             console.log(JSON.stringify(v));

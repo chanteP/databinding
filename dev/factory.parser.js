@@ -32,21 +32,26 @@ var func = {
         return desc;
     },
     //nameNS注册到acc
-    register : function(nameNS, curNS, obj, cfg){
+    //TODO 卧槽这里改得好乱
+    register : function(nameNS, curNS, obj, parentObj, cfg){
         var desc = func.getDesc(obj), 
             base,
-            data = desc.value, 
-            curCfg = curNS.indexOf(nameNS) === 0 ? cfg : {};
+            data = desc.value,
+            selfStart = curNS.indexOf(nameNS) === 0,
+            curCfg = selfStart ? cfg : {};
+        //if(acc.value !== data)
         base = Accessor.check(curNS) || new Accessor(curNS, data, curCfg);
+        //确保注册的对象有绑定
+        // selfStart && obj !== parentObj && base.bindProp(parentObj);
         if(isSimpleObject(data)){
             for(var key in data){
                 if(!data.hasOwnProperty(key)){continue;}
-                func.register(nameNS, base.parseProp(key), data[key], cfg);
+                func.register(nameNS, base.parseProp(key), data[key], data, cfg);
             }
         }
         base.setProp(desc);
         //TODO 强制mode0
-        base.bindProp();
+        base.bindProp(parentObj);
     },
     //build root
     build : function(nameNS, obj){
