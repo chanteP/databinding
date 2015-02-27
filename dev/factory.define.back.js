@@ -16,7 +16,7 @@ var register = parser.register,
     build = parser.build;
 
 var getAIID = function(){
-    return 'mug_static_data_' + aiID++;
+    return '$TmpData_' + aiID++;
 }
 //################################################################################################################
 var core = module.exports = function(nameNS, obj, cfg){

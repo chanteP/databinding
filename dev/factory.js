@@ -1,5 +1,8 @@
 /*
-    
+    抛给外面用的
+    obj = core(ns, data, cfg)
+        data -> observed + apis
+        obj -> apis
 */
 
 var config = require('./config');
@@ -7,17 +10,17 @@ var Accessor = require('./accessor');
 var listener = require('./listener');
 var define = require('./factory.define');
 
-var lib = function(nameNS, data){
+var core = function(nameNS, data){
     return define(nameNS, data);
 }
-module.exports = lib;
+module.exports = core;
 
-lib.root = Accessor.root;
-lib.storage = Accessor.storage;
-lib.listener = listener.storage;
+core.root = Accessor.root;
+core.storage = Accessor.storage;
+core.listener = listener.storage;
 
 //TODO 什么鬼
-lib.get = function(nameNS){
+core.get = function(nameNS){
     var index, value;
     if(index = /(.*)\[(\d+)\]$/.exec(nameNS)){
         nameNS = index[1];
@@ -29,14 +32,14 @@ lib.get = function(nameNS){
     }
     return value;
 }
-lib.set = function(nameNS, value, dirty){
+core.set = function(nameNS, value, dirty){
     Accessor.check(nameNS) && Accessor.check(nameNS).set(value, dirty);
     return value;
 }
 
-lib.observe        = listener.add;
-lib.unobserve      = listener.remove;
-lib.fire           = listener.fire;
+core.observe        = listener.add;
+core.unobserve      = listener.remove;
+core.fire           = listener.fire;
 
-lib.destroy        = Accessor.destroy;
+core.destroy        = Accessor.destroy;
 
