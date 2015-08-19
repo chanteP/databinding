@@ -9,11 +9,7 @@
   },
   "author": "chenwenbin03",
   "bugs": {
-    "url": "http://git.sankuai.com/users/chenwenbin03/repos/dt/browse"
-  },
-  "repository": {
-    "type": "git",
-    "url": "ssh://git@git.sankuai.com/~chenwenbin03/dt.git"
+    "url": "https://github.com/chanteP/databinding"
   },
   "license": "MIT",
   "devDependencies": {
